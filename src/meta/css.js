@@ -336,10 +336,10 @@ CSS.getCustomSkin = async function (skin) {
 };
 
 CSS.buildBundle = async function (target, fork) {
-	if (target === 'client') {
-		let files = await fs.promises.readdir(path.join(__dirname, '../../build/public'));
-		files = files.filter(f => f.match(/^client.*\.css$/));
-		await Promise.all(files.map(f => fs.promises.unlink(path.join(__dirname, '../../build/public', f))));
+	// Skip client UI bundle building
+	if (target === 'client' || target.startsWith('client-')) {
+		winston.info('[meta/css] Skipping client CSS bundle (client UI disabled)');
+		return ['', ''];
 	}
 
 	const data = await getBundleMetadata(target);

@@ -17,6 +17,7 @@ const helpers = require('./helpers');
 const auth = require('../routes/authentication');
 const writeRouter = require('../routes/write');
 const accountHelpers = require('../controllers/accounts/helpers');
+const microserviceAuth = require('./microservice');
 
 const controllers = {
 	helpers: require('../controllers/helpers'),
@@ -48,8 +49,13 @@ module.exports = function (middleware) {
 		}
 
 		if (res.locals.isAPI && (req.loggedIn || !req.headers.hasOwnProperty('authorization'))) {
-			// If authenticated via cookie (express-session), protect routes with CSRF checking
-			await middleware.applyCSRFasync(req, res);
+			// Skip CSRF for trusted microservice calls
+			if (!req.skipCSRF && !req.fromTrustedService) {
+				// If authenticated via cookie (express-session), protect routes with CSRF checking
+				await middleware.applyCSRFasync(req, res);
+			} else if (req.fromTrustedService) {
+				winston.verbose('[microservice] Bypassing CSRF for trusted service call');
+			}
 		}
 
 		if (req.loggedIn) {
@@ -95,6 +101,10 @@ module.exports = function (middleware) {
 	}
 
 	middleware.authenticateRequest = helpers.try(async (req, res, next) => {
+		// Check for microservice authentication first
+		microserviceAuth.bypassCSRF(req, res, () => {});
+		microserviceAuth.handleProxiedAuth(req, res, () => {});
+		
 		const { skip } = await plugins.hooks.fire('filter:middleware.authenticate', {
 			skip: {
 				// get: [],

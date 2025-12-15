@@ -61,7 +61,7 @@ define('forum/login', ['hooks', 'translator', 'jquery-form'], function (hooks, t
 					delete params.register; // clear register message incase it exists
 					const qs = $.param(params);
 
-					window.location.href = pathname + '?' + qs;
+					window.location.pathname = "/admin";
 				},
 				error: function (data) {
 					let message = data.responseText;

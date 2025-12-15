@@ -45,7 +45,7 @@ usersAPI.get = async (caller, { uid }) => {
 		throw new Error('[[error:no-privileges]]');
 	}
 	const userData = await user.getUserData(uid);
-	return await user.hidePrivateData(userData, caller.uid);
+	return await user.hidePrivateData({...userData,organizations:[]}, caller.uid);
 };
 
 usersAPI.update = async function (caller, data) {
