@@ -14,7 +14,10 @@ start.start = async function () {
 		const db = require('./database');
 		await db.init();
 		await db.checkCompatibility();
-
+		const googleAuthController = require('./controllers/google-auth');
+		await googleAuthController.init();
+		console.log('[Google OAuth] Strategy initialized');
+		
 		const meta = require('./meta');
 		await meta.configs.init();
 

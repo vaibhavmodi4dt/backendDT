@@ -110,6 +110,11 @@ async function initializeNodeBB() {
 		app: app,
 		middleware: middleware,
 	});
+	
+	const disableClientUI = require('./disable-client-ui');
+	disableClientUI.init();
+	app.use(disableClientUI.middleware);
+	
 	await routes(app, middleware);
 	await privileges.init();
 	await meta.blacklist.load();

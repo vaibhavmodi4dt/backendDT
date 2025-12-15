@@ -34,6 +34,7 @@ Users.exists = async (req, res) => {
 };
 
 Users.get = async (req, res) => {
+	console.log(req.user)
 	helpers.formatApiResponse(200, res, await api.users.get(req, { ...req.params }));
 };
 
