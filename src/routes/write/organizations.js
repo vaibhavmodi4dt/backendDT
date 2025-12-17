@@ -243,5 +243,9 @@ module.exports = function () {
 		orgMiddleware.canManageRoles, // ORG MANAGERS ONLY
 	], controllers.write.organizations.removeRoleFromMember);
 
+	setupApiRoute(router, 'get', '/user/profile', [
+		...middlewares,
+	], controllers.write.organizations.getMyOrganizations);
+
 	return router;
 };

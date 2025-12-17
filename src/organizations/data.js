@@ -4,7 +4,9 @@ const db = require('../database');
 const user = require('../user');
 const plugins = require('../plugins');
 const helpers = require('./helpers');
-
+const membership = require('./membership');
+const departments = require('./departments');
+const utils = require('../utils');
 const Organizations = module.exports;
 
 /**
@@ -280,4 +282,101 @@ Organizations.search = async function (query, options) {
 		totalItems: filtered.length,
 		pagination: require('../pagination').create(page, pageCount),
 	};
+};
+
+
+Organizations.getUserWithFullDetails = async function (uid) {
+	// Get user's memberships
+	const userOrgs = await membership.getUserOrganizations(uid, { status: 'active' });
+
+	if (!userOrgs || userOrgs.length === 0) {
+		return [];
+	}
+
+	// For each organization, get full details
+	const fullDetails = await Promise.all(userOrgs.map(async (orgData) => {
+		const org = orgData.organization || orgData;
+		const orgId = org.orgId;
+
+		// Get all departments in this organization
+		const allDepartments = await departments.getByOrganization(orgId, {
+			page: 1,
+			itemsPerPage: 100
+		});
+
+		// Get user's memberships in this org
+		const userMemberships = await membership.getUserMembershipInOrganization(orgId, uid);
+
+		// Build departments array with user's role in each
+		const userDepartments = await Promise.all(allDepartments.departments.map(async (dept) => {
+			// Find if user has membership in this department
+			const userDeptMembership = userMemberships.find(m =>
+				m.departmentId === dept.deptId
+			);
+
+			let role = null;
+			if (userDeptMembership && userDeptMembership.roleId) {
+				role = await Organizations.getRole(userDeptMembership.roleId);
+			}
+
+			return {
+				_id: dept._id || dept.deptId,
+				_key: `organization:${orgId}:departments`,
+				uid: dept.uid || dept.createdBy,
+				organizationId: orgId,
+				name: dept.name,
+				description: dept.description || '',
+				createdBy: dept.createdBy ? `user:${dept.createdBy}` : null,
+				createdAt: dept.timestamp ? utils.date.toISO(dept.timestamp) : null,
+				updatedAt: dept.lastmodified ? utils.date.toISO(dept.lastmodified) : null,
+				updatedBy: dept.lastmodifiedBy ? `user:${dept.lastmodifiedBy}` : null,
+				role: role ? {
+					_id: role._id || role.roleId,
+					_key: `organization:${orgId}:roles`,
+					name: role.name,
+					description: role.description || '',
+					createdBy: role.createdBy ? `user:${role.createdBy}` : null,
+					createdAt: role.timestamp ? utils.date.toISO(role.timestamp) : null,
+					updatedAt: role.lastmodified ? utils.date.toISO(role.lastmodified) : null,
+					updatedBy: role.lastmodifiedBy ? `user:${role.lastmodifiedBy}` : null,
+				} : null
+			};
+		}));
+
+		// Check user privileges
+		const isAdmin = await user.isAdminOrGlobalMod(uid);
+		const isMember = await membership.isMember(orgId, uid);
+		const isManager = await membership.isManager(orgId, uid);
+
+		// Build full organization object
+		return {
+			_id: org._id || org.orgId,
+			uid: org.uid || org.createdBy,
+			name: org.name,
+			sector: org.sector || '',
+			website: org.website || '',
+			about: org.about || '',
+			employeeRange: org.employeeRange || '',
+			leaders: org.leaders || [],
+			locations: org.locations || [],
+			socialLinks: org.socialLinks || [],
+			images: org.images || {},
+			emails: org.emails || [],
+			phoneNumbers: org.phoneNumbers || [],
+			createdBy: org.createdBy ? `user:${org.createdBy}` : null,
+			createdAt: org.timestamp ? utils.date.toISO(org.timestamp) : null,
+			updatedAt: org.lastmodified ? utils.date.toISO(org.lastmodified) : null,
+			updatedBy: org.lastmodifiedBy ? `user:${org.lastmodifiedBy}` : null,
+			type: 'organization',
+			state: org.state || 'active',
+			departments: userDepartments,
+			privileges: {
+				isAdmin: isAdmin,
+				isMember: isMember,
+				isManager: isManager
+			}
+		};
+	}));
+
+	return fullDetails;
 };

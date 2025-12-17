@@ -23,6 +23,7 @@ Organizations.exists = Organizations.data.exists;
 Organizations.isActive = Organizations.data.isActive;
 Organizations.getStats = Organizations.data.getStats;
 Organizations.search = Organizations.data.search;
+Organizations.getUserWithFullDetails = Organizations.data.getUserWithFullDetails;
 
 // Membership methods
 Organizations.join = Organizations.membership.join;
