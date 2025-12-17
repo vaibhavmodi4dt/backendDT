@@ -4,6 +4,7 @@ const db = require('../database');
 const user = require('../user');
 const plugins = require('../plugins');
 const helpers = require('./helpers');
+const { collections } = require('../database/mongo/collections');
 
 const Membership = module.exports;
 
@@ -156,7 +157,7 @@ Membership.removeWithDetails = async function (orgId, uid, data) {
 					`membership:${m.membershipId}`,
 					'removalReason',
 					reason,
-					{ collection: 'organizations' }
+					{ collection: collections.ORGANIZATIONS }
 				)
 			)
 		);

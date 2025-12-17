@@ -72,3 +72,6 @@ test.sh
 
 .docker/**
 !**/.gitkeep
+migrations/**
+*.json
+*.csv

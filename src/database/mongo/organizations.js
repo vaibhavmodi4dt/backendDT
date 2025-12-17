@@ -1,10 +1,12 @@
 'use strict';
 
+const {collections} = require('./collections');
+
 module.exports = function (module) {
 	const helpers = require('./helpers');
 
 	// Collection option for organizations
-	const collectionOptions = { collection: 'organizations' };
+	const collectionOptions = { collection: collections.ORGANIZATIONS };
 
 	// ==================== ORGANIZATIONS ====================
 
