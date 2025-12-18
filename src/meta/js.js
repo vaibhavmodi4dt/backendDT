@@ -130,10 +130,10 @@ async function getBundleScriptList(target) {
 
 JS.buildBundle = async function (target, fork) {
 	// Skip client UI bundle building
-	if (target === 'client') {
-		winston.info('[build] Skipping client JS bundle (client UI disabled)');
-		return;
-	}
+	// if (target === 'client') {
+	// 	winston.info('[build] Skipping client JS bundle (client UI disabled)');
+	// 	return;
+	// }
 
 	const filename = `scripts-${target}.js`;
 	const files = await getBundleScriptList(target);

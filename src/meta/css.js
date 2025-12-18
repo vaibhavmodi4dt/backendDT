@@ -337,10 +337,10 @@ CSS.getCustomSkin = async function (skin) {
 
 CSS.buildBundle = async function (target, fork) {
 	// Skip client UI bundle building
-	if (target === 'client' || target.startsWith('client-')) {
-		winston.info('[meta/css] Skipping client CSS bundle (client UI disabled)');
-		return ['', ''];
-	}
+	// if (target === 'client' || target.startsWith('client-')) {
+	// 	winston.info('[meta/css] Skipping client CSS bundle (client UI disabled)');
+	// 	return ['', ''];
+	// }
 
 	const data = await getBundleMetadata(target);
 	const minify = process.env.NODE_ENV !== 'development';
