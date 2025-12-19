@@ -13,4 +13,6 @@ module.exports = {
 	flags: require('./flags'),
 	files: require('./files'),
 	utils: require('./utils'),
+	organizations: require('./organizations'),
+	reports: require("./reports")
 };
