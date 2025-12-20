@@ -34,6 +34,7 @@ Emailer.transports = {
 		newline: 'unix',
 	}),
 	smtp: undefined,
+	mailgun: undefined,
 };
 
 Emailer.listServices = () => Object.keys(wellKnownServices);
@@ -116,10 +117,68 @@ Emailer.getTemplates = async (config) => {
 	return templates;
 };
 
+Emailer.setupMailgunTransport = () => {
+	winston.info('[emailer] Setting up Mailgun transport');
+	
+	// Read Mailgun config from config.json (nconf) not meta.config
+	const config = (nconf.get().email || {}).mailgun || {};
+	const enabled =config.enabled;
+	
+	winston.info(`[emailer] Mailgun enabled from config: ${enabled}`);
+	
+	if (enabled) {
+		const apiKey = config.apiKey;
+		const domain = config.domain;
+		const region = config.region || 'us'; // 'us' or 'eu'
+
+		winston.info(`[emailer] Mailgun config - domain: ${domain}, region: ${region}, apiKey: ${apiKey ? 'present' : 'missing'}`);
+
+		if (!apiKey || !domain) {
+			winston.warn('[emailer] Mailgun enabled but missing apiKey or domain');
+			return;
+		}
+
+		// Determine the correct Mailgun API endpoint based on region
+		const host = region === 'eu' ? 'api.eu.mailgun.net' : 'api.mailgun.net';
+
+		// Create Mailgun transport using nodemailer
+		const mg = require('nodemailer-mailgun-transport');
+		
+		const mailgunAuth = {
+			auth: {
+				api_key: apiKey,
+				domain: domain,
+			},
+			host: host,
+		};
+
+		Emailer.transports.mailgun = nodemailer.createTransport(mg(mailgunAuth));
+		winston.info('[emailer] Mailgun transport configured successfully');
+	} else {
+		winston.verbose('[emailer] Mailgun is disabled in config.json');
+	}
+};
+
 Emailer.setupFallbackTransport = (config) => {
-	winston.verbose('[emailer] Setting up fallback transport');
-	// Enable SMTP transport if enabled in ACP
+	winston.info('[emailer] Setting up fallback transport');
+	
+	// Priority: Mailgun > SMTP > Sendmail
+	// Check Mailgun first (from nconf/config.json)
+	const mailgunConfig = (nconf.get().email || {}).mailgun || {};
+	const mailgunEnabled = mailgunConfig.enabled;
+	const mailgunTransportExists = !!Emailer.transports.mailgun;
+	
+	winston.info(`[emailer] Mailgun fallback check - enabled: ${mailgunEnabled}, transport exists: ${mailgunTransportExists}`);
+	
+	if (mailgunEnabled && mailgunTransportExists) {
+		winston.info('[emailer] ✓ Using Mailgun as fallback transport');
+		Emailer.fallbackTransport = Emailer.transports.mailgun;
+		return;
+	}
+
+	// Only check SMTP if Mailgun is not available
 	if (parseInt(config['email:smtpTransport:enabled'], 10) === 1) {
+		winston.info('[emailer] Mailgun not available, checking SMTP...');
 		const smtpOptions = {
 			name: getHostname(),
 			pool: config['email:smtpTransport:pool'],
@@ -160,7 +219,9 @@ Emailer.setupFallbackTransport = (config) => {
 		}
 		Emailer.transports.smtp = nodemailer.createTransport(smtpOptions);
 		Emailer.fallbackTransport = Emailer.transports.smtp;
+		winston.info('[emailer] Using SMTP as fallback transport');
 	} else {
+		winston.info('[emailer] No Mailgun or SMTP, using Sendmail as fallback transport');
 		Emailer.fallbackTransport = Emailer.transports.sendmail;
 	}
 };
@@ -183,6 +244,8 @@ Emailer.registerApp = (expressApp) => {
 		},
 	};
 
+	// Setup Mailgun first (reads from nconf), then fallback (reads from meta.config for SMTP)
+	Emailer.setupMailgunTransport();
 	Emailer.setupFallbackTransport(meta.config);
 	buildCustomTemplates(meta.config);
 
@@ -206,9 +269,13 @@ Emailer.registerApp = (expressApp) => {
 				Emailer._defaultPayload.logo.width = config['brand:emailLogo:width'];
 			}
 
+			// Note: Mailgun config is in config.json (nconf) and requires restart to change
+			// Only SMTP settings can be updated via admin panel without restart
+
 			if (smtpSettingsChanged(config)) {
 				Emailer.setupFallbackTransport(config);
 			}
+			
 			buildCustomTemplates(config);
 
 			prevConfig = { ...prevConfig, ...config };
@@ -349,11 +416,17 @@ Emailer.sendToEmail = async (template, email, language, params) => {
 		} else {
 			await Emailer.sendViaFallback(data);
 		}
+		
+		// Log successful send with Mailgun
+		if (Emailer.fallbackTransport === Emailer.transports.mailgun) {
+			winston.verbose(`[emailer] Email sent via Mailgun to ${email}`);
+		}
 	} catch (err) {
 		if (err.code === 'ENOENT' && usingFallback) {
 			Emailer.fallbackNotFound = true;
 			throw new Error('[[error:sendmail-not-found]]');
 		} else {
+			winston.error(`[emailer] Failed to send email: ${err.message}`);
 			throw err;
 		}
 	}
@@ -370,6 +443,15 @@ Emailer.sendViaFallback = async (data) => {
 		address: data.from,
 	};
 	delete data.from_name;
+	
+	// Add Mailgun-specific tags if using Mailgun
+	if (Emailer.fallbackTransport === Emailer.transports.mailgun && data.template) {
+		data['o:tag'] = [data.template, 'nodebb'];
+		data['o:tracking'] = true;
+		data['o:tracking-clicks'] = true;
+		data['o:tracking-opens'] = true;
+	}
+	
 	await Emailer.fallbackTransport.sendMail(data);
 };
 

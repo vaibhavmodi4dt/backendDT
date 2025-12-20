@@ -115,6 +115,7 @@
         "nodebb-theme-persona": "14.1.18",
         "nodebb-widget-essentials": "7.0.41",
         "nodemailer": "7.0.10",
+        "nodemailer-mailgun-transport": "^2.1.5",
         "nprogress": "0.2.0",
         "passport": "0.7.0",
         "passport-google-oauth20": "^2.0.0",
