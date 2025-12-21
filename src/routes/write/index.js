@@ -45,7 +45,7 @@ Write.reload = async (params) => {
 	router.use('/api/v3/admin', require('./admin')());
 	router.use('/api/v3/files', require('./files')());
 	router.use('/api/v3/utilities', require('./utilities')());
-	router.use('/api/v3/auth', require('./google-auth')());
+	router.use('/api/v3/auth', require('./auth')());
 	router.use('/api/v3/organizations', require('./organizations')());
 	router.use('/api/v3/reports', require('./reports')());
 

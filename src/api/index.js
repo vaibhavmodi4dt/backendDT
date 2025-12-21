@@ -14,5 +14,6 @@ module.exports = {
 	files: require('./files'),
 	utils: require('./utils'),
 	organizations: require('./organizations'),
+	auth: require('./auth'),
 	reports: require("./reports")
 };
