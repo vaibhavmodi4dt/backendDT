@@ -160,6 +160,7 @@
         "xml": "1.0.1",
         "xregexp": "5.1.2",
         "yargs": "17.7.2",
+        "zod": "^4.2.1",
         "zxcvbn": "4.4.2"
     },
     "devDependencies": {
