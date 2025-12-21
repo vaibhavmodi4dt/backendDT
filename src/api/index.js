@@ -15,5 +15,5 @@ module.exports = {
 	utils: require('./utils'),
 	organizations: require('./organizations'),
 	auth: require('./auth'),
-
+	reports: require("./reports")
 };
