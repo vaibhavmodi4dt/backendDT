@@ -1,5 +1,4 @@
 'use strict';
-
 module.exports = {
 	admin: require('./admin'),
 	users: require('./users'),
@@ -15,5 +14,5 @@ module.exports = {
 	utils: require('./utils'),
 	organizations: require('./organizations'),
 	auth: require('./auth'),
-
+	threadbuilder: require('./threadbuilder'),
 };

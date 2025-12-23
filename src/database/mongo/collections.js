@@ -1,4 +1,5 @@
 export const collections  = {
     OBJECTS:"objects",
-    ORGANIZATIONS :"organizations"
+    ORGANIZATIONS :"organizations",
+    THREADBUILDERS :"threadbuilders"
 };
