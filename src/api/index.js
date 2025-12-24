@@ -15,4 +15,5 @@ module.exports = {
 	organizations: require('./organizations'),
 	auth: require('./auth'),
 	threadbuilder: require('./threadbuilder'),
+	reports: require("./reports")
 };

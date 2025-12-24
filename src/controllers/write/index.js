@@ -17,5 +17,4 @@ Write.utilities = require('./utilities');
 Write.organizations = require('./organizations');
 Write.auth = require('./auth');
 Write.threadbuilder = require('./threadbuilder');
-
-
+Write.reports = require("./reports")
