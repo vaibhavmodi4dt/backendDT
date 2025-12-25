@@ -51,12 +51,8 @@ ThreadBuilder.create = async (caller, data) => {
 
 
 	return {
-		success: true,
-		message: 'ThreadBuilder created successfully',
-		threadBuilder: {
-			_id: String(tbId),
-			...threadBuilderData,
-		},
+		_id: String(tbId),
+		...threadBuilderData,
 	};
 };
 
@@ -260,12 +256,8 @@ ThreadBuilder.update = async (caller, data) => {
 	await db.sortedSetAdd('threadbuilders:sorted', timestamp, tbId);
 
 	return {
-		success: true,
-		message: 'ThreadBuilder updated successfully',
-		threadBuilder: {
-			_id: String(tbId),
-			...updatedData,
-		},
+		_id: String(tbId),
+		...updatedData,
 	};
 };
 
@@ -309,11 +301,8 @@ ThreadBuilder.delete = async (caller, data) => {
 	// Remove from global sorted set
 	await db.sortedSetRemove('threadbuilders:sorted', tbId);
 
-	
-	return {
-		success: true,
-		message: 'ThreadBuilder deleted successfully',
-	};
+
+	return {};
 };
 
 // ==========================================
@@ -376,11 +365,7 @@ ThreadBuilder.duplicate = async (caller, data) => {
 
 
 	return {
-		success: true,
-		message: 'ThreadBuilder duplicated successfully',
-		threadBuilder: {
-			_id: String(newTbId),
-			...duplicateData,
-		},
+		_id: String(newTbId),
+		...duplicateData,
 	};
 };

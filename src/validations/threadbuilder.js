@@ -9,43 +9,52 @@ const ThreadBuilder = module.exports;
 // ==========================================
 
 // Thought type flags (0 or 1)
-const thoughtFlag = z.union([z.literal(0), z.literal(1)]).default(0);
+const thoughtFlag = z.union([z.literal(0), z.literal(1)]);
 
-// Emotion types
-const emotionType = z.enum([
-	'eurekaEmphasis',
-	'blissfullyPuzzled',
-	'spirituallyDetermined',
-	'upsetandmotivated',
-]).default('blissfullyPuzzled');
+// Emotion types - allow empty string OR enum values
+const emotionType = z.union([
+	z.literal(''),
+	z.enum([
+		'eurekaEmphasis',
+		'blissfullyPuzzled',
+		'spirituallyDetermined',
+		'upsetandmotivated',
+	])
+]);
 
-// Category types
-const categoryType = z.enum([
-	'remark',
-	'subargument',
-	'subexplanation',
-	'coreprinciple',
-]).default('remark');
+// Category types - allow empty string OR enum values
+const categoryType = z.union([
+	z.literal(''),
+	z.enum([
+		'remark',
+		'subargument',
+		'subexplanation',
+		'coreprinciple',
+	])
+]);
 
-// Process types
-const processType = z.enum([
-	'question',
-	'analogy',
-	'sarcasm',
-	'insight',
-	'counterexample',
-]).default('question');
+// Process types - allow empty string OR enum values
+const processType = z.union([
+	z.literal(''),
+	z.enum([
+		'question',
+		'analogy',
+		'sarcasm',
+		'insight',
+		'counterexample',
+	])
+]);
 
 // ==========================================
 // SUBTHREAD SCHEMA
 // ==========================================
 
 const subThreadSchema = z.object({
-	id: z.string().default(''),
-	title: z.string().max(100, 'SubThread title too long (max 100 characters)').default(''),
-	interpretation_title: z.string().max(100, 'Interpretation title too long (max 100 characters)').default(''),
-	content: z.string().max(5000, 'Content too long (max 5000 characters)').default(''),
-	interpretation: z.string().max(5000, 'Interpretation too long (max 5000 characters)').default(''),
+	id: z.string(),
+	title: z.string().max(100, 'SubThread title too long (max 100 characters)'),
+	interpretation_title: z.string().max(100, 'Interpretation title too long (max 100 characters)'),
+	content: z.string().max(5000, 'Content too long (max 5000 characters)'),
+	interpretation: z.string().max(5000, 'Interpretation too long (max 5000 characters)'),
 	category: categoryType,
 	process: processType,
 	eureka: thoughtFlag,
@@ -66,15 +75,14 @@ const subThreadSchema = z.object({
 // ==========================================
 
 const threadSchema = z.object({
-	id: z.number().int().positive('Thread ID must be a positive integer').default(1),
-	title: z.string().max(100, 'Thread title too long (max 100 characters)').default(''),
+	id: z.number().int().positive('Thread ID must be a positive integer'),
+	title: z.string().max(100, 'Thread title too long (max 100 characters)'),
 	emotions: emotionType,
 	summary: z.object({
-		title: z.string().max(100, 'Summary title too long (max 100 characters)').default(''),
-		content: z.string().max(2000, 'Summary content too long (max 2000 characters)').default(''),
-	}).default({ title: '', content: '' }),
+		title: z.string().max(100, 'Summary title too long (max 100 characters)'),
+		content: z.string().max(2000, 'Summary content too long (max 2000 characters)'),
+	}),
 	subthreads: z.array(subThreadSchema)
-		.default([])
 		.transform((subthreads) => {
 			// Filter out null subthreads (empty ones)
 			return subthreads.filter(st => st !== null);
@@ -86,36 +94,36 @@ const threadSchema = z.object({
 // ==========================================
 
 const statsSchema = z.object({
-	timestamp: z.number().int().positive().default(() => Date.now()),
+	timestamp: z.number().int().positive(),
 	count: z.object({
-		characters: z.number().int().nonnegative().default(0),
-		words: z.number().int().nonnegative().default(0),
-		threads: z.number().int().positive().default(1),
-	}).default({ characters: 0, words: 0, threads: 1 }),
-	eureka: z.array(z.string()).default([]),
-	answer: z.array(z.string()).default([]),
-	question: z.array(z.string()).default([]),
-	root: z.array(z.string()).default([]),
-	remark: z.array(z.string()).default([]),
-	process: z.array(z.string()).default([]),
-}).default({});
+		characters: z.number().int().nonnegative(),
+		words: z.number().int().nonnegative(),
+		threads: z.number().int().positive(),
+	}),
+	eureka: z.array(z.string()),
+	answer: z.array(z.string()),
+	question: z.array(z.string()),
+	root: z.array(z.string()),
+	remark: z.array(z.string()),
+	process: z.array(z.string()),
+});
 
 // ==========================================
 // CONFIG SCHEMA (Optional)
 // ==========================================
 
 const configSchema = z.object({
-	enableDraft: z.boolean().default(false),
-	enableAutoSave: z.boolean().default(true),
-	autoSaveInterval: z.number().int().positive().default(30000),
-	preventCopyPaste: z.boolean().default(false),
-	showStats: z.boolean().default(true),
-	showEmotions: z.boolean().default(true),
-	enableTracking: z.boolean().default(true),
-	minThreads: z.number().int().positive().default(1),
-	maxThreads: z.number().int().positive().nullable().default(null),
-	minSubthreads: z.number().int().positive().default(1),
-}).default({});
+	enableDraft: z.boolean(),
+	enableAutoSave: z.boolean(),
+	autoSaveInterval: z.number().int().positive(),
+	preventCopyPaste: z.boolean(),
+	showStats: z.boolean(),
+	showEmotions: z.boolean(),
+	enableTracking: z.boolean(),
+	minThreads: z.number().int().positive(),
+	maxThreads: z.number().int().positive().nullable(),
+	minSubthreads: z.number().int().positive(),
+});
 
 // ==========================================
 // CREATE/UPDATE SCHEMA
@@ -123,18 +131,18 @@ const configSchema = z.object({
 
 ThreadBuilder.create = z.object({
 	meta: z.object({
-		title: z.string().max(100, 'Title too long (max 100 characters)').default(''),
-	}).default({ title: '' }),
-	threads: z.array(threadSchema).default([]),
+		title: z.string().max(100, 'Title too long (max 100 characters)'),
+	}),
+	threads: z.array(threadSchema),
 	stats: statsSchema,
 	config: configSchema,
 });
 
 ThreadBuilder.update = z.object({
 	meta: z.object({
-		title: z.string().max(100, 'Title too long (max 100 characters)').default(''),
-	}).default({ title: '' }),
-	threads: z.array(threadSchema).default([]),
+		title: z.string().max(100, 'Title too long (max 100 characters)'),
+	}),
+	threads: z.array(threadSchema),
 	stats: statsSchema,
 	config: configSchema,
 });
