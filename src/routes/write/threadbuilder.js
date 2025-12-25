@@ -32,7 +32,7 @@ module.exports = function () {
 	setupApiRoute(
 		router,
 		'get',
-		'/all',
+		'/public',
 		[
 			middleware.ensureLoggedIn,
 			validate.query(schemas.threadbuilder.list),
