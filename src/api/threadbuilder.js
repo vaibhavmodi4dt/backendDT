@@ -6,8 +6,67 @@ const collections = require('../database/mongo/collections');
 const pagination = require('../pagination');
 const utils = require('../utils');
 
-
 const ThreadBuilder = module.exports;
+
+// ==========================================
+// HELPER: Extract content preview
+// ==========================================
+//  Very limited to Threadbuilder only, that's Y not put in utils 
+/**
+ * Extracts a preview/snippet from ThreadBuilder content with fallbacks
+ * Priority: subthread content > subthread interpretation > thread summary > thread title
+ * @param {Object} content - The content object containing content data
+ * @returns {string} - Preview text or empty string
+ */
+ThreadBuilder.extractContentPreview = (content) => {
+
+	try {
+		let string = [];
+		// Try to get first subthread content
+		if (content.threads && content.threads.length > 0) {
+			const firstThread = content.threads[0];
+
+			// Check subthreads
+			if (firstThread.subthreads && firstThread.subthreads.length > 0) {
+				const firstSubthread = firstThread.subthreads[0];
+
+				// Priority 1: Subthread content
+				if (firstSubthread.content && firstSubthread.content.trim()) {
+					string.push(firstSubthread.content.trim());
+				}
+
+				// Priority 2: Subthread interpretation
+				if (firstSubthread.interpretation && firstSubthread.interpretation.trim()) {
+					string.push(firstSubthread.interpretation.trim());
+				}
+			}
+
+			// Priority 3: Thread summary content
+			if (firstThread.summary && firstThread.summary.content && firstThread.summary.content.trim()) {
+				string.push(firstThread.summary.content.trim());
+			}
+
+			// Priority 4: Thread summary title
+			if (firstThread.summary && firstThread.summary.title && firstThread.summary.title.trim()) {
+				string.push(firstThread.summary.title.trim());
+			}
+
+			// Priority 5: Thread title
+			if (firstThread.title && firstThread.title.trim()) {
+				string.push(firstThread.title.trim());
+			}
+
+			return string.join('\n').trim();
+		}
+		return string.join('\n').trim();
+	} catch (error) {
+
+	}
+
+	return '';
+};
+
+
 
 // ==========================================
 // CREATE
@@ -121,29 +180,33 @@ ThreadBuilder.list = async (caller, data) => {
 	let threadBuilders = [];
 	if (tbIds.length > 0) {
 		const keys = tbIds.map(id => `threadbuilder:${id}`);
-		const data = await Promise.all(
-			keys.map(key => db.getObject(key, [], { collection: collections.THREADBUILDERS }))
-		);
+		const data = await db.getObjects(keys, { collection: collections.THREADBUILDERS });
 
-		threadBuilders = data
-			.filter(Boolean)
-			.map((tb, index) => ({
-				_id: String(tbIds[index]),
-				uid: tb.uid,
-				meta: tb.meta,
-				stats: {
-					count: tb.stats.count,
-				},
-				createdAt: tb.createdAt,
-				updatedAt: tb.updatedAt,
-			}));
+		threadBuilders = tbIds
+			.map((id, index) => {
+				const tb = data[index];
+				if (!tb) return null;
+
+				return {
+					_id: String(id),
+					uid: tb.uid,
+					meta: tb.meta,
+					stats: {
+						count: tb.stats.count,
+					},
+					preview: ThreadBuilder.extractContentPreview(tb),
+					createdAt: tb.createdAt,
+					updatedAt: tb.updatedAt,
+				};
+			})
+			.filter(Boolean);
 	}
 
 	// Create pagination object
 	const paginationData = pagination.create(page, pageCount, { page, limit });
 
 	return {
-		threadbuilders: threadBuilders,
+		data: threadBuilders,
 		pagination: paginationData,
 	};
 };
@@ -176,28 +239,42 @@ ThreadBuilder.listAll = async (caller, data) => {
 	let threadBuilders = [];
 	if (tbIds.length > 0) {
 		const keys = tbIds.map(id => `threadbuilder:${id}`);
-		const data = await Promise.all(
-			keys.map(key => db.getObject(key, [], { collection: collections.THREADBUILDERS }))
-		);
+		const data = await db.getObjects(keys, { collection: collections.THREADBUILDERS });
 
-		threadBuilders = data
+		// Get unique user IDs
+		const userKeys = data
 			.filter(Boolean)
-			.map((tb, index) => ({
-				_id: String(tbIds[index]),
-				uid: tb.uid,
-				meta: tb.meta,
-				stats: {
-					count: tb.stats.count,
-				},
-				createdAt: tb.createdAt,
-				updatedAt: tb.updatedAt,
-			}));
+			.map(tb => tb.uid);
+
+		const users = await user.getUsersFields(userKeys, [
+			'uid', 'username', 'userslug', 'picture', 'status', 'lastonline',
+		]);
+
+		threadBuilders = tbIds
+			.map((id, index) => {
+				const tb = data[index];
+				if (!tb) return null;
+
+				return {
+					_id: String(id),
+					uid: tb.uid,
+					user: users[index] || null,
+					meta: tb.meta,
+					stats: {
+						count: tb.stats.count
+					},
+					preview: ThreadBuilder.extractContentPreview(tb),
+					createdAt: tb.createdAt,
+					updatedAt: tb.updatedAt,
+				};
+			})
+			.filter(Boolean);
 	}
 
 	const paginationData = pagination.create(page, pageCount, { page, limit });
 
 	return {
-		threadbuilders: threadBuilders,
+		data: threadBuilders,
 		pagination: paginationData,
 	};
 };
