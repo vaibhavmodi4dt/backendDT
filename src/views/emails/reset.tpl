@@ -2,48 +2,74 @@
 
 <!-- Email Body : BEGIN -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">
+    <tr>
+        <td style="padding: 0 0 24px 0;">
+            <!-- Main Content Card -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #FFFFFF; border: 1px solid #E5E5E6; border-radius: 8px;">
+                <!-- Icon and Title -->
+                <tr>
+                    <td style="padding: 48px 40px 24px 40px; text-align: center; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+                        <div style="width: 64px; height: 64px; margin: 0 auto 20px auto; background: #F0F2FF; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 32px; color: #0029FF;">🔑</span>
+                        </div>
+                        <h1 class="heading-1" style="margin: 0 0 16px 0; font-size: 24px; line-height: 32px; font-weight: 700; color: #000000;">
+                            [[email:password-reset-requested]]
+                        </h1>
+                        <p class="body-text" style="margin: 0; font-size: 15px; line-height: 24px; color: #333333;">
+                            [[email:reset.text1]]
+                        </p>
+                    </td>
+                </tr>
 
-	<!-- 1 Column Text + Button : BEGIN -->
-	<tr>
-		<td bgcolor="#ffffff">
-			<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-				<tr>
-					<td style="padding: 40px 40px 6px 40px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 15px; line-height: 20px; color: #555555;">
-						<h1 style="margin: 0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 24px; line-height: 27px; color: #333333; font-weight: normal;">[[email:greeting-no-name]]</h1>
-					</td>
-				</tr>
-				<tr>
-					<td style="padding: 0px 40px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 15px; line-height: 20px; color: #555555;">
-						<h1 style="margin: 0 0 10px 0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 18px; line-height: 21px; color: #aaaaaa; font-weight: normal;">[[email:reset.text1]]</h1>
-					</td>
-				</tr>
-				<tr>
-					<td style="padding: 20px 40px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 15px; line-height: 20px; color: #555555;">
-						<p style="margin: 0;">
-							[[email:reset.text2]]
-						</p>
-					</td>
-				</tr>
-				<tr>
-					<td style="padding: 32px 40px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 15px; line-height: 20px; color: #555555;">
-						<!-- Button : BEGIN -->
-						<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: auto;">
-							<tr>
-								<td style="border-radius: 3px; background: #222222; text-align: center;" class="button-td">
-									<a href="{reset_link}" style="background: #222222; border: 15px solid #222222; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol; font-size: 13px; line-height: 1.1; text-align: center; text-decoration: none; display: block; border-radius: 3px; font-weight: bold;" class="button-a">
-										<span style="color:#ffffff;" class="button-link">[[email:reset.cta]] &rarr;</span>
-									</a>
-								</td>
-							</tr>
-						</table>
-						<!-- Button : END -->
-					</td>
-				</tr>
-			</table>
-		</td>
-	</tr>
-	<!-- 1 Column Text + Button : END -->
+                <!-- Reset Code Box (if applicable) -->
+                {{{ if reset_code }}}
+                <tr>
+                    <td style="padding: 0 40px 24px 40px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #F5F5F6; border: 2px solid #0029FF; border-radius: 8px;">
+                            <tr>
+                                <td style="padding: 20px; text-align: center;">
+                                    <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #666666; text-transform: uppercase; letter-spacing: 0.5px;">Reset Code</p>
+                                    <p style="margin: 0; font-size: 28px; font-weight: 700; color: #0029FF; font-family: 'Courier New', monospace; letter-spacing: 4px;">{reset_code}</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {{{ end }}}
 
+                <!-- CTA Button -->
+                <tr>
+                    <td style="padding: 0 40px 32px 40px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+                            <tr>
+                                <td style="background: #0029FF; border: 2px solid #0029FF; border-radius: 8px; text-align: center;" class="button-primary">
+                                    <a href="{reset_link}" style="background: #0029FF; display: inline-block; padding: 14px 32px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; font-size: 15px; font-weight: 600; line-height: 20px; text-align: center; text-decoration: none; border-radius: 8px;" class="button-a">
+                                        <span style="color: #FFFFFF;" class="button-link">[[email:reset.cta]] →</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Security Notice -->
+                <tr>
+                    <td style="padding: 0 40px 48px 40px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #FFF4E5; border: 1px solid #FFD580; border-radius: 6px;">
+                            <tr>
+                                <td style="padding: 16px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+                                    <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #B45309;">⚠️ Security Notice</p>
+                                    <p style="margin: 0; font-size: 13px; line-height: 20px; color: #92400E;">
+                                        [[email:reset.text2]]
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
 </table>
 <!-- Email Body : END -->
 
