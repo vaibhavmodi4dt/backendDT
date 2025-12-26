@@ -15,7 +15,7 @@
                 <tr>
                     <td style="padding: 0 24px 32px 24px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; font-size: 12px; line-height: 18px; text-align: center; color: #999999;">
                         <p style="margin: 0;">
-                            © {{{ year }}} {site_title}. All rights reserved.
+                            {site_title}
                         </p>
                     </td>
                 </tr>
