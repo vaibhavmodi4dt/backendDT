@@ -136,6 +136,9 @@ ThreadBuilder.create = z.object({
 	threads: z.array(threadSchema),
 	stats: statsSchema,
 	config: configSchema,
+	workspaceId: z.string()
+		.optional()
+		.refine(val => !val || !isNaN(parseInt(val, 10)), 'Invalid workspace ID'),
 });
 
 ThreadBuilder.update = z.object({

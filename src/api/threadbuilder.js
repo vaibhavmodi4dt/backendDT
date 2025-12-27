@@ -77,7 +77,7 @@ ThreadBuilder.create = async (caller, data) => {
 		throw new Error('[[error:not-logged-in]]');
 	}
 
-	const { meta, threads, stats, config } = data;
+	const { meta, threads, stats, config, workspaceId } = data;
 
 	// Generate new ThreadBuilder ID
 	const tbId = await db.incrObjectField('global', 'nextTbId');
@@ -108,6 +108,20 @@ ThreadBuilder.create = async (caller, data) => {
 	// Add to global sorted set
 	await db.sortedSetAdd('threadbuilders:sorted', timestamp, tbId);
 
+	// NEW: Auto-link to workspace if workspaceId provided
+	if (workspaceId) {
+		try {
+			const workspaces = require('./workspace');
+			await workspaces.linkAsset(caller, {
+				id: workspaceId,
+				assetType: 'threadbuilder',
+				assetId: String(tbId),
+			});
+		} catch (err) {
+			// If workspace linking fails, log but don't fail creation
+			console.error(`Failed to link ThreadBuilder ${tbId} to workspace ${workspaceId}:`, err.message);
+		}
+	}
 
 	return {
 		_id: String(tbId),
@@ -412,7 +426,7 @@ ThreadBuilder.duplicate = async (caller, data) => {
 
 	// Generate new ID
 	const newTbId = await db.incrObjectField('global', 'nextTbId');
-	const timestamp = utit;
+	const timestamp = utils.date.now();
 
 	// Create duplicate with new ID and timestamp
 	const duplicateData = {
