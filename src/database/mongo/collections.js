@@ -2,5 +2,6 @@ export const collections  = {
     OBJECTS:"objects",
     ORGANIZATIONS :"organizations",
     THREADBUILDERS :"threadbuilders",
-    REPORTS: "reports"
+    REPORTS: "reports",
+    WORKSPACES:"workspaces"
 };
