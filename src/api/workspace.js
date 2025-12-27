@@ -123,7 +123,7 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 		endTime: workspaceData.endTime,
 		status: status,
 		inviteToken: workspaceData.inviteToken,
-		inviteLink: `${utils.nconf.get('url')}/workspaces/join/${workspaceData.inviteToken}`,
+		inviteLink: `http://localhost:3000/workspace/join/${workspaceData.inviteToken}`,
 		settings: workspaceData.settings || {
 			maxParticipants: null,
 			allowAssetSharing: true,
