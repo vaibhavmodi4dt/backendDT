@@ -1,7 +1,7 @@
 'use strict';
 
 const api = require('../../api');
-const helpers = require('../../helpers');
+const helpers = require('../helpers');
 
 const Recognition = module.exports;
 
