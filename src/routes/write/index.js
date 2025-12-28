@@ -50,6 +50,7 @@ Write.reload = async (params) => {
 	router.use('/api/v3/threadbuilder', require('./threadbuilder')());
 	router.use('/api/v3/reports', require('./reports')());
 	router.use('/api/v3/workspace', require('./workspace')());
+	router.use('/api/v3/recognition', require('./recognition')());
 
 
 	setupApiRoute(router, 'get', '/api/v3/ping', writeControllers.utilities.ping.get);
