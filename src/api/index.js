@@ -16,5 +16,6 @@ module.exports = {
 	auth: require('./auth'),
 	threadbuilder: require('./threadbuilder'),
 	reports: require("./reports"),
-	workspace: require("./workspace")
+	workspace: require("./workspace"),
+	recognition:require('./recognition')
 };
