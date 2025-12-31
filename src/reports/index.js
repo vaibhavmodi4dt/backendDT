@@ -1,18 +1,52 @@
 'use strict';
 
-const MonthlyReports = module.exports;
+const Reports = module.exports;
 
 // Sub-modules
-MonthlyReports.reports = require("./monthly");
-MonthlyReports.helpers = require("./helpers");
+Reports.monthly = require('./monthly');
+Reports.daily = require('./daily');
+Reports.helpers = require('./helpers');
 
-MonthlyReports.save = MonthlyReports.reports.save;
-MonthlyReports.get = MonthlyReports.reports.get;
+// ==========================================
+// MONTHLY REPORTS
+// ==========================================
 
+Reports.save = Reports.monthly.save;
+Reports.get = Reports.monthly.get;
 
-//helpers
-MonthlyReports.validateReportsData = MonthlyReports.helpers.validateReportData;
+// ==========================================
+// DAILY REPORTS
+// ==========================================
 
+// Core operations
+Reports.submitPlan = Reports.daily.submitPlan;
+Reports.submitReport = Reports.daily.submitReport;
+Reports.getDailyReport = Reports.daily.getDailyReport;
+Reports.getDailyReportRaw = Reports.daily.getDailyReportRaw;
 
+// Plan management
+Reports.getIncompletePlans = Reports.daily.getIncompletePlans;
 
+// Frameworks
+Reports.submitFrameworks = Reports.daily.submitFrameworks;
 
+// Reflection
+Reports.updateReflection = Reports.daily.updateReflection;
+
+// Chat/AI
+Reports.postChatMessage = Reports.daily.postChatMessage;
+Reports.getChatMessages = Reports.daily.getChatMessages;
+
+// Session management
+Reports.initiateSession = Reports.daily.initiateSession;
+Reports.getSessionStatus = Reports.daily.getSessionStatus;
+Reports.submitLogout = Reports.daily.submitLogout;
+
+// Analytics
+Reports.getCount = Reports.daily.getCount;
+
+// ==========================================
+// HELPERS
+// ==========================================
+
+Reports.validateReportsData = Reports.helpers.validateReportData;
