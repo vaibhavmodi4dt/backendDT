@@ -100,3 +100,49 @@ helpers.calculateSubmittedTimestamp = function (status, existing, now) {
 
     return existing ? (existing.submitted || 0) : (isSubmitted ? now : 0);
 };
+
+
+
+// ==========================================
+// DAILY HELPERS (SIMPLIFIED)
+// ==========================================
+
+/**
+ * Get today's date in YYYY-MM-DD format (local time)
+ */
+helpers.getTodayDate = () => utils.date.format(utils.date.now(), utils.date.formats.DATE)
+
+/**
+ * Generate daily report key
+ */
+helpers.getDailyReportKey = function (uid, date) {
+    return `report:daily:user:${uid}:${date}`;
+};
+
+/**
+ * Check if value is set (not undefined, null, or empty string)
+ */
+helpers.isset = function (value) {
+    return value !== undefined && value !== null && value !== '';
+};
+
+/**
+ * Sanitize daily report for output
+ */
+helpers.sanitizeDailyReport = function (report) {
+    if (!report) return null;
+
+    return {
+        uid: report.uid,
+        date: report.date,
+        plan: report.plan || [],
+        report: report.report || null,
+        frameworks: report.frameworks || [],
+        evaluated: report.evaluated || null,
+        conversationId: report.conversationId || null,
+        loginAt: report.loginAt || null,
+        logoutAt: report.logoutAt || null,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+    };
+};
