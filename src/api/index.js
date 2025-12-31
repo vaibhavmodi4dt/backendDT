@@ -17,5 +17,6 @@ module.exports = {
 	threadbuilder: require('./threadbuilder'),
 	reports: require("./reports"),
 	workspace: require("./workspace"),
-	recognition:require('./recognition')
+	recognition:require('./recognition'),
+	pitch:require('./pitch')
 };

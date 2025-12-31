@@ -34,6 +34,12 @@ Workspaces.create = z.object({
 			.nullable()
 			.optional()
 			.default(null),
+		maxPitches: z.number()
+			.int('Max pitches must be an integer')
+			.positive('Max pitches must be positive')
+			.nullable()
+			.optional()
+			.default(null),
 		allowAssetSharing: z.boolean()
 			.optional()
 			.default(true),
