@@ -19,4 +19,6 @@ Write.auth = require('./auth');
 Write.threadbuilder = require('./threadbuilder');
 Write.reports = require("./reports");
 Write.workspace = require("./workspace")
-Write.recognition = require("./recognition")
+Write.recognition = require("./recognition");
+Write.pitch = require("./pitch")
+
