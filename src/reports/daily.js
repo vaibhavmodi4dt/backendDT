@@ -57,7 +57,7 @@ DailyReports.submitPlan = async function (uid, plan) {
 // SUBMIT DAILY REPORT
 // ==========================================
 DailyReports.submitReport = async function (uid, data, existing) {
-    const today = data?.date || helpers.getTodayDate();
+    const today = helpers.getTodayDate();
     const key = helpers.getDailyReportKey(uid, today);
 
     // Call AI evaluation
