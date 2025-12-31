@@ -6,6 +6,8 @@ const user = require('./user');
 const threadbuilder = require('./threadbuilder');
 const workspace = require('./workspace');
 const reports = require('./reports');
+const recognition = require('./recognition');
+
 
 module.exports = {
 	common,
@@ -14,4 +16,5 @@ module.exports = {
 	threadbuilder,
 	workspace,
 	reports,
+	recognition
 };
