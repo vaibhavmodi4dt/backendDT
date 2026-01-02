@@ -4,6 +4,7 @@ const user = require('../user');
 const meta = require('../meta');
 const plugins = require('../plugins');
 const db = require('../database');
+const { membership } = require('../organizations');
 
 const Auth = module.exports;
 
@@ -57,6 +58,12 @@ Auth.register = async (caller, data) => {
 	// - Welcome notification
 	// So we don't need to duplicate that here
 
+	//try to join: This is a default org ID, first is always Dt in Any Env, in future we will provide option in FE to do select it
+	try {
+		await membership.join(1, uid, { departmentId: 1, roleId: 1 });
+	} catch (error) {
+
+	}
 	return {
 		success: true,
 		message: meta.config.requireEmailConfirmation
