@@ -294,6 +294,9 @@ DateUtils.formats = {
 	FULL: 'EEEE, MMMM do, yyyy',
 	SHORT: 'MMM d, yyyy',
 	MONTH_YEAR: 'MMMM yyyy',
+	YEAR: "yyyy",
+	MONTH: 'MM',
+
 };
 
 
@@ -315,3 +318,34 @@ DateUtils.getCurrentWeekDuration = function () {
 	};
 };
 
+/**
+ * Get start of week (Monday)
+ * @param {number} timestamp - Unix timestamp in milliseconds
+ * @returns {number} Start of week timestamp
+ */
+DateUtils.startOfWeek = function (timestamp) {
+	if (!timestamp) return null;
+	const date = startOfWeek(new Date(timestamp), { weekStartsOn: 1 });
+	return date.getTime();
+};
+
+
+/**
+ * Get day of week with configurable week start
+ * @param {number} timestamp - Unix timestamp in milliseconds
+ * @param {Object} [options]
+ * @param {number} [options.weekStartsOn=0] - 0 = Sunday, 1 = Monday
+ * @returns {number} Day index
+ */
+DateUtils.getDays = function (timestamp, options = {}) {
+	if (!timestamp) return null;
+
+	const { weekStartsOn = 0 } = options;
+	const date = new Date(timestamp);
+	if (!isValid(date)) return null;
+
+	const day = date.getDay(); // 0–6 (Sun–Sat)
+
+	// Normalize based on week start
+	return (day - weekStartsOn + 7) % 7;
+};
