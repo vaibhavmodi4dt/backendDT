@@ -1,5 +1,6 @@
 'use strict';
 
+
 /**
  * Date Utilities for NodeBB
  * Wrapper around date-fns for consistent date handling
@@ -16,6 +17,8 @@ const {
 	addDays,
 	addMonths,
 	subDays,
+	startOfWeek,
+	endOfWeek,
 	startOfDay,
 	endOfDay,
 	startOfMonth,
@@ -39,7 +42,7 @@ DateUtils.toISO = function (timestamp) {
 		return isValid(date) ? date.toISOString() : null;
 	} catch (err) {
 		return null;
-	}   
+	}
 };
 
 /**
@@ -292,3 +295,23 @@ DateUtils.formats = {
 	SHORT: 'MMM d, yyyy',
 	MONTH_YEAR: 'MMMM yyyy',
 };
+
+
+
+/**
+ * Get current week start and end (Monday to Sunday)
+ * @returns {Object} { start: ISOString, end: ISOString }
+ */
+DateUtils.getCurrentWeekDuration = function () {
+	const now = new Date();
+	const startDate = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+	const endDate = endOfWeek(now, { weekStartsOn: 1 });
+
+	return {
+		start: startDate.toISOString(),
+		end: endDate.toISOString(),
+		startTimestamp: startDate.getTime(),
+		endTimestamp: endDate.getTime(),
+	};
+};
+
