@@ -240,6 +240,7 @@ Auth.getCurrentUser = async (caller) => {
 
 	// Use NodeBB's getUserData method
 	const userData = await user.getUserData(caller.uid);
+	const organizations = await membership.getUserOrganizations(caller.uid);
 
 	return {
 		uid: userData.uid,
@@ -256,6 +257,7 @@ Auth.getCurrentUser = async (caller) => {
 		topiccount: userData.topiccount,
 		joindate: userData.joindate,
 		lastonline: userData.lastonline,
+		organizations
 	};
 };
 
