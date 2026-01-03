@@ -6,7 +6,7 @@ const user = require('../user');
 const collections = require('../database/mongo/collections');
 const pagination = require('../pagination');
 const utils = require('../utils');
-
+const nconf = require('nconf');
 const Workspace = module.exports;
 
 // ==========================================
