@@ -97,7 +97,7 @@ DailyReports.submitReport = async function (uid, data, existing) {
         evaluated,
         plan,
         logoutAt: existing.logoutAt || utils.getCurrentISODateTime(),
-        updatedAt: utilities.getISOTimestamp(),
+        updatedAt: utils.date.toISO(utils.date.now()),
         updatedCount: (existing.updatedCount || 0) + 1,
     }, reportsCollection);
 
@@ -218,20 +218,39 @@ DailyReports.submitFrameworks = async function (uid, data) {
     const key = helpers.getDailyReportKey(uid, date);
     const existing = await db.getObject(key, [], reportsCollection);
 
+    // ✅ Get existing frameworks
+    const existingFrameworks = existing?.frameworks || [];
+
+    // ✅ Merge: Update existing or add new
+    const updatedFrameworks = [...existingFrameworks];
+
+    data.frameworks.forEach(newFw => {
+        const index = updatedFrameworks.findIndex(fw => fw.text === newFw.text);
+
+        if (index >= 0) {
+            // ✅ Update existing framework
+            updatedFrameworks[index] = newFw;
+        } else {
+            // ✅ Add new framework
+            updatedFrameworks.push(newFw);
+        }
+    });
+
     await db.setObject(key, {
         ...(existing || {}),
         uid,
         date,
-        frameworks: data.frameworks,
-        modifiedAt: utils.toISOString(),
+        frameworks: updatedFrameworks,
+        modifiedAt: utils.date.toISO(utils.date.now()),
     }, reportsCollection);
 
     return {
         success: true,
         frameworksAdded: data.frameworks.length,
-        totalFrameworks: data.frameworks.length,
+        totalFrameworks: updatedFrameworks.length,
     };
 };
+
 
 // ==========================================
 // UPDATE REFLECTION
@@ -252,7 +271,7 @@ DailyReports.updateReflection = async function (uid, data, existing) {
     await db.setObject(key, {
         ...existing,
         evaluated,
-        updatedAt: utils.toISOString(),
+        updatedAt: utils.date.toISO(utils.date.now()),
         updatedCount: (existing.updatedCount || 0) + 1,
     }, reportsCollection);
 
@@ -352,7 +371,7 @@ DailyReports.initiateSession = async function (uid) {
 DailyReports.submitLogout = async function (uid) {
     const today = helpers.getTodayDate();
     const key = helpers.getDailyReportKey(uid, today);
-    const currentTime = utils.toISOString();
+    const currentTime = utils.date.toISO(utils.date.now())
 
     await db.setObjectField(key, 'logoutAt', currentTime, reportsCollection);
 
