@@ -97,7 +97,7 @@ DailyReports.submitReport = async function (uid, data, existing) {
         evaluated,
         plan,
         logoutAt: existing.logoutAt || utils.getCurrentISODateTime(),
-        updatedAt: utilities.getISOTimestamp(),
+        updatedAt: utils.date.toISO(utils.date.now()),
         updatedCount: (existing.updatedCount || 0) + 1,
     }, reportsCollection);
 
@@ -129,28 +129,50 @@ DailyReports.getDailyReport = async function (uid, date) {
 // ==========================================
 DailyReports.getIncompletePlans = async function (uid) {
     // Get current week start (Monday)
-    const weekStart = utils.startOfWeek(utils.now());
-    const startDate = utils.format(weekStart, 'yyyy-MM-dd');
+    const weekStart = utils.date.startOfWeek(utils.date.now());
+    const startDate = utils.date.format(weekStart, utils.date.formats.DATE);
+
 
     // Get yesterday
-    const yesterday = utils.subDays(utils.now(), 1);
-    const endDate = utils.format(yesterday, 'yyyy-MM-dd');
+    const yesterday = utils.date.subDays(utils.date.now(), 1);
+    const endDate = utils.date.format(yesterday, utils.date.formats.DATE);
 
-    const entries = await db.findFields(reportsCollection, {
-        uid,
-        date: { $gte: startDate, $lte: endDate },
-        plan: { $elemMatch: { status: { $in: ['notStarted', 'inProcess'] } } },
-    });
+    const entries = await db.Aggregate(reportsCollection, [
+        {
+            $match: {
+                uid,
+                date: {
+                    $gte: startDate,
+                    $lte: endDate
+                },
+                plan: {
+                    $elemMatch: {
+                        status: { $in: ["notStarted", "inProcess"] }
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                date: 1,
+                plan: {
+                    $filter: {
+                        input: "$plan",
+                        as: "task",
+                        cond: { $in: ["$$task.status", ["notStarted", "inProcess"]] }
+                    }
+                }
+            }
+        },
+        { $sort: { date: -1 } }
+    ]);
 
-    // Filter incomplete tasks and sort
-    return entries
-        .map(entry => ({
-            date: entry.date,
-            plan: entry.plan.filter(task =>
-                ['notStarted', 'inProcess'].includes(task.status)
-            ),
-        }))
-        .sort((a, b) => b.date.localeCompare(a.date));
+
+    if (!entries || entries.length === 0) {
+        return [];
+    }
+
+    return entries;
 };
 
 
@@ -196,20 +218,39 @@ DailyReports.submitFrameworks = async function (uid, data) {
     const key = helpers.getDailyReportKey(uid, date);
     const existing = await db.getObject(key, [], reportsCollection);
 
+    // ✅ Get existing frameworks
+    const existingFrameworks = existing?.frameworks || [];
+
+    // ✅ Merge: Update existing or add new
+    const updatedFrameworks = [...existingFrameworks];
+
+    data.frameworks.forEach(newFw => {
+        const index = updatedFrameworks.findIndex(fw => fw.text === newFw.text);
+
+        if (index >= 0) {
+            // ✅ Update existing framework
+            updatedFrameworks[index] = newFw;
+        } else {
+            // ✅ Add new framework
+            updatedFrameworks.push(newFw);
+        }
+    });
+
     await db.setObject(key, {
         ...(existing || {}),
         uid,
         date,
-        frameworks: data.frameworks,
-        modifiedAt: utils.toISOString(),
+        frameworks: updatedFrameworks,
+        modifiedAt: utils.date.toISO(utils.date.now()),
     }, reportsCollection);
 
     return {
         success: true,
         frameworksAdded: data.frameworks.length,
-        totalFrameworks: data.frameworks.length,
+        totalFrameworks: updatedFrameworks.length,
     };
 };
+
 
 // ==========================================
 // UPDATE REFLECTION
@@ -230,7 +271,7 @@ DailyReports.updateReflection = async function (uid, data, existing) {
     await db.setObject(key, {
         ...existing,
         evaluated,
-        updatedAt: utils.toISOString(),
+        updatedAt: utils.date.toISO(utils.date.now()),
         updatedCount: (existing.updatedCount || 0) + 1,
     }, reportsCollection);
 
@@ -310,7 +351,7 @@ DailyReports.getChatMessages = async function (uid) {
 DailyReports.initiateSession = async function (uid) {
     const today = helpers.getTodayDate();
     const key = helpers.getDailyReportKey(uid, today);
-    const currentTime = utils.toISOString();
+    const currentTime = utils.date.toISO(utils.date.now());
     const startChat = await AiAgentService.post('/chat-reflection', { message: 'Hello there!' });
 
     await db.setObject(key, {
@@ -330,7 +371,7 @@ DailyReports.initiateSession = async function (uid) {
 DailyReports.submitLogout = async function (uid) {
     const today = helpers.getTodayDate();
     const key = helpers.getDailyReportKey(uid, today);
-    const currentTime = utils.toISOString();
+    const currentTime = utils.date.toISO(utils.date.now())
 
     await db.setObjectField(key, 'logoutAt', currentTime, reportsCollection);
 

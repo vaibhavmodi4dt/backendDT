@@ -22,7 +22,7 @@ reportsApi.save = async function (caller, data) {
 };
 
 // ==========================================
-// DAILY REPORTS (NEW)
+// DAILY REPORTS (EXISTING)
 // ==========================================
 
 /**
@@ -207,4 +207,121 @@ reportsApi.submitLogout = async function (caller, data) {
     }
 
     return await Reports.submitLogout(caller.uid);
+};
+
+// ==========================================
+// WEEKLY REPORTS (NEW)
+// ==========================================
+
+/**
+ * Submit weekly plan
+ */
+reportsApi.submitWeeklyPlan = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
+    // Normalize and validate inputs
+    const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
+    const transcript = String(data.transcript || '').trim();
+    const weeklyGoals = String(data.weeklyGoals || '').trim();
+
+    if (!transcript) {
+        throw new Error('[[error:transcript-required]]');
+    }
+    if (!weeklyGoals) {
+        throw new Error('[[error:weekly-goals-required]]');
+    }
+
+    // Pass to business logic (which handles AI evaluation)
+    return await Reports.submitWeeklyPlan(caller.uid, weekStart, transcript, weeklyGoals);
+};
+
+/**
+ * Get weekly plan
+ */
+reportsApi.getWeeklyPlan = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
+    // Normalize weekStart
+    const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
+
+    // Get the entry
+    const entry = await Reports.getWeekly(caller.uid, weekStart);
+
+    // Validate entry exists
+    if (!entry) {
+        throw new Error('[[error:no-weekly-entry-found]]');
+    }
+
+    return entry;
+};
+
+/**
+ * Update weekly plan
+ */
+reportsApi.updateWeeklyPlan = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
+    // Normalize weekStart
+    const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
+
+    // Check if weekly plan exists
+    const existing = await Reports.getWeeklyRaw(caller.uid, weekStart);
+    if (!existing) {
+        throw new Error('[[error:no-weekly-entry-found]]');
+    }
+
+    // Validate and filter updates
+    const allowedFields = [
+        'transcript',
+        'weeklyGoals',
+        'evaluation.goal',
+        'evaluation.plan',
+        'evaluation.objectives',
+        'evaluation.keyResults',
+    ];
+
+    const updates = {};
+    if (data.updates && typeof data.updates === 'object') {
+        Object.keys(data.updates).forEach((field) => {
+            const isAllowed = allowedFields.some(allowed =>
+                field === allowed || field.startsWith(allowed + '.')
+            );
+
+            if (!isAllowed) {
+                throw new Error(`[[error:field-not-allowed]]: ${field}`);
+            }
+
+            updates[field] = data.updates[field];
+        });
+    }
+
+    if (Object.keys(updates).length === 0) {
+        throw new Error('[[error:no-valid-updates]]');
+    }
+
+    // Pass cleaned data to business logic
+    return await Reports.updateWeekly(caller.uid, weekStart, updates, existing);
+};
+
+/**
+ * Get weekly report (7-day aggregation)
+ */
+reportsApi.getWeeklyReport = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
+    // Compute week dates
+    const anchor = data.date ? new Date(data.date) : new Date();
+    const weekStart = Reports.helpers.getWeekStartDate(anchor);
+    const weekDates = Reports.helpers.getWeekDates(weekStart);
+
+    // Pass computed dates to business logic
+    return await Reports.getWeeklyReport(caller.uid, weekDates);
 };
