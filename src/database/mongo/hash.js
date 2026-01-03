@@ -54,7 +54,7 @@ module.exports = function (module) {
 	module.setObjectBulk = async function (...args) {
 		let data = args[0];
 		let options = args[2] || {};
-		
+
 		if (!Array.isArray(data) || !data.length) {
 			return;
 		}
@@ -160,7 +160,7 @@ module.exports = function (module) {
 
 		if (unCachedKeys.length >= 1) {
 			// Extract original keys from cache keys
-			const originalKeys = unCachedKeys.map(ck => 
+			const originalKeys = unCachedKeys.map(ck =>
 				collectionName === 'objects' ? ck : ck.replace(`${collectionName}:`, '')
 			);
 
@@ -330,4 +330,9 @@ module.exports = function (module) {
 		await bulk.execute();
 		cache.del(data.map(item => getCacheKey(item[0], collectionName)));
 	};
+	module.Aggregate = async (collection, pipeline) => {
+		const defaultCollection = getCollectionName(collection);
+		return await module.client.collection(defaultCollection).aggregate(pipeline).toArray();
+	};
+
 };

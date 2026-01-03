@@ -65,8 +65,10 @@ const dateSchema = z.string()
     }, 'Invalid date');
 
 // ==========================================
-// SUBMIT PLAN
+// DAILY REPORT SCHEMAS
 // ==========================================
+
+// SUBMIT PLAN
 DailyReport.submitPlan = z.object({
     plan: z.array(
         z.union([
@@ -76,9 +78,7 @@ DailyReport.submitPlan = z.object({
     ).min(1, 'At least one plan item is required'),
 });
 
-// ==========================================
 // SUBMIT REPORT
-// ==========================================
 DailyReport.submitReport = z.object({
     report: z.string()
         .min(10, 'Report must be at least 10 characters')
@@ -96,23 +96,17 @@ DailyReport.submitReport = z.object({
     selectedPlanIndexes: z.array(z.number().int().nonnegative()).optional(),
 });
 
-// ==========================================
 // GET BY DATE
-// ==========================================
 DailyReport.getByDate = z.object({
     date: dateSchema,
 });
 
-// ==========================================
 // GET INCOMPLETE PLANS
-// ==========================================
 DailyReport.getIncompletePlans = z.object({
     // No parameters needed - uses caller.uid and current week
 });
 
-// ==========================================
 // GET COUNT
-// ==========================================
 DailyReport.getCount = z.object({
     startDate: dateSchema,
     endDate: dateSchema,
@@ -122,9 +116,7 @@ DailyReport.getCount = z.object({
     return start <= end;
 }, 'Start date must be before or equal to end date');
 
-// ==========================================
 // SUBMIT FRAMEWORKS
-// ==========================================
 DailyReport.submitFrameworks = z.object({
     date: dateSchema.optional(),
     frameworks: z.array(
@@ -135,48 +127,68 @@ DailyReport.submitFrameworks = z.object({
     ).min(1, 'At least one framework is required'),
 });
 
-// ==========================================
 // UPDATE REFLECTION
-// ==========================================
 DailyReport.updateReflection = z.object({
     date: dateSchema.optional(),
     dailyReflection: z.record(z.string(), z.string().min(1, 'Reflection text is required'))
         .refine((obj) => Object.keys(obj).length === 1, 'Only one reflection field can be updated at a time'),
 });
 
-// ==========================================
 // POST CHAT MESSAGE
-// ==========================================
 DailyReport.postChatMessage = z.object({
     message: z.string()
         .min(1, 'Message is required')
         .max(5000, 'Message too long (max 5000 characters)'),
 });
 
-// ==========================================
 // GET CHAT MESSAGES
-// ==========================================
 DailyReport.getChatMessages = z.object({
     // No parameters needed - uses caller.uid and today's date
 });
 
-// ==========================================
 // INITIATE SESSION
-// ==========================================
 DailyReport.initiateSession = z.object({
     // No parameters needed - uses caller.uid and today's date
 });
 
-// ==========================================
 // GET SESSION STATUS
-// ==========================================
 DailyReport.getSessionStatus = z.object({
     date: dateSchema,
 });
 
-// ==========================================
 // SUBMIT LOGOUT
-// ==========================================
 DailyReport.submitLogout = z.object({
     // No parameters needed - uses caller.uid and today's date
+});
+
+// ==========================================
+// WEEKLY REPORT SCHEMAS
+// ==========================================
+
+// SUBMIT WEEKLY PLAN
+DailyReport.submitWeeklyPlan = z.object({
+    weekStart: dateSchema.optional(), // Auto-calculates to current Monday if not provided
+    transcript: z.string()
+        .min(10, 'Transcript must be at least 10 characters')
+        .max(10000, 'Transcript too long (max 10000 characters)'),
+    weeklyGoals: z.string()
+        .min(10, 'Weekly goals must be at least 10 characters')
+        .max(5000, 'Weekly goals too long (max 5000 characters)'),
+});
+
+// GET WEEKLY PLAN
+DailyReport.getWeeklyPlan = z.object({
+    weekStart: dateSchema.optional(), // Defaults to current week Monday
+});
+
+// UPDATE WEEKLY PLAN
+DailyReport.updateWeeklyPlan = z.object({
+    weekStart: dateSchema.optional(), // Defaults to current week Monday
+    updates: z.record(z.string(), z.any())
+        .refine((obj) => Object.keys(obj).length > 0, 'At least one field must be updated'),
+});
+
+// GET WEEKLY REPORT (7-day aggregation)
+DailyReport.getWeeklyReport = z.object({
+    date: dateSchema.optional(), // Any date in the week, defaults to today
 });

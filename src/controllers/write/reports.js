@@ -5,6 +5,10 @@ const helpers = require('../helpers');
 
 const Reports = module.exports;
 
+// ==========================================
+// MONTHLY REPORT
+// ==========================================
+
 /**
  * GET /api/v3/reports
  */
@@ -22,6 +26,10 @@ Reports.get = async function (req, res) {
 Reports.save = async function (req, res) {
     helpers.formatApiResponse(200, res, await api.reports.save(req, req.body));
 };
+
+// ==========================================
+// DAILY REPORTS
+// ==========================================
 
 /**
  * POST /api/v3/reports/daily/plan
@@ -50,7 +58,7 @@ Reports.getDailyReport = async function (req, res) {
  * GET /api/v3/reports/daily/incomplete-plans
  */
 Reports.getIncompletePlans = async function (req, res) {
-    helpers.formatApiResponse(200, res, await api.reports.getIncompletePlans(req, {}));
+    helpers.formatApiResponse(200, res, await api.reports.getIncompletePlans(req));
 };
 
 /**
@@ -112,4 +120,40 @@ Reports.getSessionStatus = async function (req, res) {
  */
 Reports.submitLogout = async function (req, res) {
     helpers.formatApiResponse(200, res, await api.reports.submitLogout(req, {}));
+};
+
+// ==========================================
+// WEEKLY REPORTS
+// ==========================================
+
+/**
+ * POST /api/v3/reports/weekly/plan
+ */
+Reports.submitWeeklyPlan = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.submitWeeklyPlan(req, req.body));
+};
+
+/**
+ * GET /api/v3/reports/weekly/plan
+ */
+Reports.getWeeklyPlan = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.getWeeklyPlan(req, {
+        weekStart: req.query.weekStart,
+    }));
+};
+
+/**
+ * PUT /api/v3/reports/weekly/plan
+ */
+Reports.updateWeeklyPlan = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.updateWeeklyPlan(req, req.body));
+};
+
+/**
+ * GET /api/v3/reports/weekly/report
+ */
+Reports.getWeeklyReport = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.getWeeklyReport(req, {
+        date: req.query.date,
+    }));
 };

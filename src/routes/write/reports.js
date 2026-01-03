@@ -9,19 +9,22 @@ const routeHelpers = require('../helpers');
 const validate = require('../../middleware/validate');
 const schemas = require('../../validations');
 
-
 const { setupApiRoute } = routeHelpers;
 
 module.exports = function () {
     const middlewares = [middleware.ensureLoggedIn];
 
+    // ==========================================
+    // MONTHLY REPORTS (EXISTING)
+    // ==========================================
 
-    setupApiRoute(router, "post", "/", middlewares, controllers.write.reports.save)
-    setupApiRoute(router, "get", "/", middlewares, controllers.write.reports.get)
+    setupApiRoute(router, "post", "/", middlewares, controllers.write.reports.save);
+    setupApiRoute(router, "get", "/", middlewares, controllers.write.reports.get);
 
     // ==========================================
-    // DAILY REPORTS
+    // DAILY REPORTS (EXISTING)
     // ==========================================
+
     setupApiRoute(
         router,
         'post',
@@ -51,7 +54,7 @@ module.exports = function () {
     setupApiRoute(
         router,
         'get',
-        '/daily/incomplete-plans',
+        '/incomplete-plans',
         middlewares,
         controllers.write.reports.getIncompletePlans
     );
@@ -86,7 +89,7 @@ module.exports = function () {
         router,
         'post',
         '/daily/chat',
-        [...middlewares, validate.body(schemas.reports.postChatMessage)],
+        middlewares,
         controllers.write.reports.postChatMessage
     );
 
@@ -121,6 +124,46 @@ module.exports = function () {
         '/daily/session/logout',
         middlewares,
         controllers.write.reports.submitLogout
+    );
+
+    // ==========================================
+    // WEEKLY REPORTS (NEW)
+    // ==========================================
+
+    // Submit weekly plan
+    setupApiRoute(
+        router,
+        'post',
+        '/weekly/plan',
+        [...middlewares, validate.body(schemas.reports.submitWeeklyPlan)],
+        controllers.write.reports.submitWeeklyPlan
+    );
+
+    // Get weekly plan
+    setupApiRoute(
+        router,
+        'get',
+        '/weekly/plan',
+        [...middlewares, validate.query(schemas.reports.getWeeklyPlan)],
+        controllers.write.reports.getWeeklyPlan
+    );
+
+    // Update weekly plan
+    setupApiRoute(
+        router,
+        'put',
+        '/weekly/plan',
+        [...middlewares, validate.body(schemas.reports.updateWeeklyPlan)],
+        controllers.write.reports.updateWeeklyPlan
+    );
+
+    // Get weekly report (7-day aggregation)
+    setupApiRoute(
+        router,
+        'get',
+        '/weekly/report',
+        [...middlewares, validate.query(schemas.reports.getWeeklyReport)],
+        controllers.write.reports.getWeeklyReport
     );
 
     return router;

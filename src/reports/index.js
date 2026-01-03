@@ -6,6 +6,7 @@ const Reports = module.exports;
 Reports.monthly = require('./monthly');
 Reports.daily = require('./daily');
 Reports.helpers = require('./helpers');
+Reports.weekly = require("./weekly")
 
 // ==========================================
 // MONTHLY REPORTS
@@ -44,6 +45,15 @@ Reports.submitLogout = Reports.daily.submitLogout;
 
 // Analytics
 Reports.getCount = Reports.daily.getCount;
+
+// Core operations
+Reports.submitWeeklyPlan = Reports.weekly.submitPlan;
+Reports.getWeekly = Reports.weekly.getWeekly;
+Reports.getWeeklyRaw = Reports.weekly.getWeeklyRaw;
+Reports.updateWeekly = Reports.weekly.updateWeekly;
+
+// Weekly report (7-day aggregation)
+Reports.getWeeklyReport = Reports.weekly.getReport;
 
 // ==========================================
 // HELPERS

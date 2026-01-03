@@ -31,7 +31,7 @@ helpers.validateReportData = function (data) {
  * Generate report key
  */
 helpers.getReportKey = function (uid, yearMonth) {
-    return `report:monthly:user:${uid}:${yearMonth}`;
+    return `reports:monthly:user:${uid}:${yearMonth}`;
 };
 
 /**
@@ -101,22 +101,20 @@ helpers.calculateSubmittedTimestamp = function (status, existing, now) {
     return existing ? (existing.submitted || 0) : (isSubmitted ? now : 0);
 };
 
-
-
 // ==========================================
-// DAILY HELPERS (SIMPLIFIED)
+// DAILY HELPERS
 // ==========================================
 
 /**
  * Get today's date in YYYY-MM-DD format (local time)
  */
-helpers.getTodayDate = () => utils.date.format(utils.date.now(), utils.date.formats.DATE)
+helpers.getTodayDate = () => utils.date.format(utils.date.now(), utils.date.formats.DATE);
 
 /**
  * Generate daily report key
  */
 helpers.getDailyReportKey = function (uid, date) {
-    return `report:daily:user:${uid}:${date}`;
+    return `reports:daily:user:${uid}:${date}`;
 };
 
 /**
@@ -142,6 +140,78 @@ helpers.sanitizeDailyReport = function (report) {
         conversationId: report.conversationId || null,
         loginAt: report.loginAt || null,
         logoutAt: report.logoutAt || null,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+    };
+};
+
+// ==========================================
+// WEEKLY HELPERS
+// ==========================================
+
+/**
+ * Get current week start (Monday) in YYYY-MM-DD format
+ */
+helpers.getCurrentWeekStart = function () {
+    const nowTs = utils.date.now();
+    const mondayTs = utils.date.startOfWeek(nowTs);
+    return utils.date.format(mondayTs, utils.date.formats.DATE);
+};
+/**
+ * Generate weekly report key
+ */
+helpers.getWeeklyReportKey = function (uid, weekStart) {
+    return `reports:weekly:user:${uid}:${weekStart}`;
+};
+
+/**
+ * Get week start date (Monday) from any date
+ */
+helpers.getWeekStartDate = function (date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day + 6) % 7; // Days to subtract to get Monday
+
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - diff);
+
+    return monday;
+};
+
+/**
+ * Get array of 7 dates (Mon-Sun) from week start
+ */
+helpers.getWeekDates = function (weekStart) {
+    const dates = [];
+    const start = new Date(weekStart);
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        dates.push(`${year}-${month}-${day}`);
+    }
+
+    return dates;
+};
+
+/**
+ * Sanitize weekly report for output
+ */
+helpers.sanitizeWeeklyReport = function (report) {
+    if (!report) return null;
+
+    return {
+        uid: report.uid,
+        weekStart: report.weekStart,
+        transcript: report.transcript || null,
+        weeklyGoals: report.weeklyGoals || null,
+        evaluation: report.evaluation || null,
+        submissionStatus: report.submissionStatus || null,
         createdAt: report.createdAt,
         updatedAt: report.updatedAt,
     };
