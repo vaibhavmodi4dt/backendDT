@@ -46,14 +46,37 @@ Reports.submitLogout = Reports.daily.submitLogout;
 // Analytics
 Reports.getCount = Reports.daily.getCount;
 
+// ==========================================
+// WEEKLY REPORTS (EXISTING)
+// ==========================================
+
 // Core operations
 Reports.submitWeeklyPlan = Reports.weekly.submitPlan;
 Reports.getWeekly = Reports.weekly.getWeekly;
 Reports.getWeeklyRaw = Reports.weekly.getWeeklyRaw;
 Reports.updateWeekly = Reports.weekly.updateWeekly;
 
-// Weekly report (7-day aggregation)
+// Weekly report (6-day aggregation - raw data)
 Reports.getWeeklyReport = Reports.weekly.getReport;
+
+// ==========================================
+// WEEKLY REPORT EVALUATION (NEW)
+// ==========================================
+
+// Generate AI-evaluated weekly report
+Reports.generateWeeklyReportEvaluation = Reports.weekly.generateReportEvaluation;
+
+// Get existing evaluation
+Reports.getReportEvaluation = Reports.weekly.getReportEvaluation;
+
+// Get raw evaluation (for updates)
+Reports.getReportEvaluationRaw = Reports.weekly.getReportEvaluation; // Uses same method
+
+// Update evaluation (user edits)
+Reports.updateReportEvaluation = Reports.weekly.updateReportEvaluation;
+
+// Submit final report
+Reports.submitReportEvaluation = Reports.weekly.submitReportEvaluation;
 
 // ==========================================
 // HELPERS

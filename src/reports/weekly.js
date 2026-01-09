@@ -27,7 +27,7 @@ WeeklyReports.submitPlan = async function (uid, weekStart, transcript, weeklyGoa
 
     const existing = await db.getObject(key, [], reportsCollection);
 
-    // Call AI evaluation (part of business operation)
+    // Call AI evaluation
     const response = await AiAgentService.post('/weekly-plan/evaluate', {
         transcript: transcript,
         goal: weeklyGoals,
@@ -43,6 +43,7 @@ WeeklyReports.submitPlan = async function (uid, weekStart, transcript, weeklyGoa
         ...(existing || {}),
         uid,
         weekStart,
+        week: helpers.getWeekNumber(weekStart),
         transcript,
         weeklyGoals,
         evaluation,
@@ -77,9 +78,11 @@ WeeklyReports.getWeekly = async function (uid, weekStart) {
 // ==========================================
 // UPDATE WEEKLY PLAN
 // ==========================================
-WeeklyReports.updateWeekly = async function (uid, weekStart, updates, existing) {
+WeeklyReports.updateWeekly = async function (uid, weekStart, updates) {
     const key = helpers.getWeeklyReportKey(uid, weekStart);
     const currentTime = utils.toISOString(utils.date.now());
+
+    const existing = await db.getObject(key, [], reportsCollection);
 
     await db.setObject(key, {
         ...existing,
@@ -97,7 +100,7 @@ WeeklyReports.updateWeekly = async function (uid, weekStart, updates, existing) 
 };
 
 // ==========================================
-// GET WEEKLY REPORT (7-day aggregation)
+// GET WEEKLY REPORT (6-day aggregation)
 // ==========================================
 WeeklyReports.getReport = async function (uid, weekDates) {
     const days = [];
@@ -127,7 +130,144 @@ WeeklyReports.getReport = async function (uid, weekDates) {
 
     return {
         startDate: weekDates[0],
-        endDate: weekDates[6],
+        endDate: weekDates[5],
         days,
+    };
+};
+
+// ==========================================
+// FETCH DAILY REPORTS FOR WEEK
+// ==========================================
+WeeklyReports.fetchDailyReports = async function (uid, weekDates) {
+    const dailyReports = [];
+
+    for (const dateISO of weekDates) {
+        const key = helpers.getDailyReportKey(uid, dateISO);
+        const entry = await db.getObject(key, [], reportsCollection);
+
+        if (entry && entry.plan && entry.plan.length > 0) {
+            dailyReports.push({
+                date: entry.date,
+                plan: entry.plan || [],
+                frameworks: entry.frameworks || [],
+                evaluated: entry.evaluated || null,
+                report: entry.report || null,
+            });
+        }
+    }
+
+    return dailyReports;
+};
+
+// ==========================================
+// CALL AI SERVICE FOR EVALUATION
+// ==========================================
+WeeklyReports.callAiEvaluation = async function (dailyReports) {
+    const response = await AiAgentService.post('/weekly-report/evaluate', {
+        dailyReports: dailyReports,
+    });
+
+    return response;
+};
+
+// ==========================================
+// SAVE WEEKLY REPORT EVALUATION
+// ==========================================
+WeeklyReports.saveReportEvaluation = async function (uid, weekStart, generatedReport, existing) {
+    const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
+    const currentTime = utils.toISOString(utils.date.now());
+    const timestamp = utils.date.now();
+
+    await db.setObject(key, {
+        uid,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        generatedReport,
+        editedReport: existing?.editedReport || null,
+        status: existing?.status || 'draft',
+        submittedAt: existing?.submittedAt || null,
+        createdAt: existing?.createdAt || currentTime,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    // Update indexes
+    await Promise.all([
+        db.sortedSetAdd(`user:${uid}:reports:weekly-evaluation`, timestamp, key),
+        db.sortedSetAdd(`reports:weekly-evaluation:weekStart:${weekStart}`, timestamp, key),
+    ].filter(Boolean));
+
+    return {
+        uid,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        generatedReport,
+        editedReport: existing?.editedReport || null,
+        status: existing?.status || 'draft',
+        submittedAt: existing?.submittedAt || null,
+        createdAt: existing?.createdAt || currentTime,
+        updatedAt: currentTime,
+    };
+};
+
+// ==========================================
+// GET WEEKLY REPORT EVALUATION
+// ==========================================
+WeeklyReports.getReportEvaluation = async function (uid, weekStart) {
+    const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
+    const entry = await db.getObject(key, [], reportsCollection);
+    return entry;
+};
+
+// ==========================================
+// UPDATE WEEKLY REPORT EVALUATION
+// ==========================================
+WeeklyReports.updateReportEvaluation = async function (uid, weekStart, editedReport) {
+    const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
+    const currentTime = utils.toISOString(utils.date.now());
+
+    const existing = await db.getObject(key, [], reportsCollection);
+
+    await db.setObject(key, {
+        ...existing,
+        editedReport,
+        uid,
+        weekStart,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    return {
+        ok: true,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        updatedAt: currentTime,
+    };
+};
+
+// ==========================================
+// SUBMIT WEEKLY REPORT EVALUATION
+// ==========================================
+WeeklyReports.submitReportEvaluation = async function (uid, weekStart) {
+    const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
+    const currentTime = utils.toISOString(utils.date.now());
+    const timestamp = utils.date.now();
+
+    const existing = await db.getObject(key, [], reportsCollection);
+
+    await db.setObject(key, {
+        ...existing,
+        status: 'submitted',
+        submittedAt: currentTime,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    // Update submitted index
+    await db.sortedSetAdd(`user:${uid}:reports:weekly-evaluation:submitted`, timestamp, key);
+
+    return {
+        ok: true,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        status: 'submitted',
+        submittedAt: currentTime,
     };
 };

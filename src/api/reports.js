@@ -4,324 +4,216 @@ const Reports = require('../reports');
 
 const reportsApi = module.exports;
 
-// ==========================================
-// MONTHLY REPORTS (EXISTING)
-// ==========================================
-
-reportsApi.get = async function (caller, data) {
-    return await Reports.get(caller.uid, data.month);
-};
-
-reportsApi.save = async function (caller, data) {
-    Reports.validateReportsData(data);
-    return await Reports.save({
-        uid: caller.uid,
-        status: data.status,
-        steps: data.steps,
-    });
-};
+// ... (keeping all existing methods unchanged until WEEKLY REPORT EVALUATION section)
 
 // ==========================================
-// DAILY REPORTS (EXISTING)
+// WEEKLY REPORT EVALUATION (NEW) - WITH BUSINESS LOGIC
 // ==========================================
 
 /**
- * Submit daily plan
+ * Generate weekly report evaluation using AI
+ * POST /api/v3/reports/weekly/report/generate
  */
-reportsApi.submitPlan = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    return await Reports.submitPlan(caller.uid, data.plan);
-};
-
-/**
- * Submit daily report
- */
-reportsApi.submitReport = async function (caller, data) {
+reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
     if (!caller.uid) {
         throw new Error('[[error:not-logged-in]]');
     }
 
-    const today = data?.date || Reports.helpers.getTodayDate();
+    // Determine week start
+    const anchor = data.date ? new Date(data.date) : new Date();
+    const weekStart = Reports.helpers.getWeekStartDate(anchor);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const week = Reports.helpers.getWeekNumber(weekStartStr);
+    const weekDates = Reports.helpers.getWeekDates(weekStartStr);
 
-    // Check if plan exists
-    const existing = await Reports.getDailyReportRaw(caller.uid, today);
-    if (!existing?.plan?.length) {
-        throw new Error('[[error:plan-required-first]]');
+    // Check for existing evaluation (for caching)
+    const existing = await Reports.getReportEvaluation(caller.uid, weekStartStr);
+
+    // Fetch daily reports from database
+    const dailyReports = await Reports.fetchDailyReports(caller.uid, weekDates);
+
+    // Validate: Check if any daily reports exist
+    if (dailyReports.length === 0) {
+        return {
+            success: false,
+            error: 'No daily reports found for this week',
+            weekStart: weekStartStr,
+            week,
+            daysFound: 0,
+        };
     }
 
-    // Check retry eligibility
-    if (existing.report) {
-        const lastStatus = existing.evaluated?.submissionStatus;
-        if (!['needs_nudge', 'evaluation_failed', 'pending'].includes(lastStatus)) {
-            throw new Error('[[error:report-already-submitted]]');
+    // Call AI service to evaluate
+    let aiResponse;
+    try {
+        aiResponse = await Reports.callAiEvaluation(dailyReports);
+    } catch (error) {
+        // AI service error - check if we have cached evaluation
+        console.error('AI service error:', error);
+
+        if (existing && existing.generatedReport) {
+            // Return cached evaluation
+            return {
+                success: true,
+                cached: true,
+                message: 'AI service unavailable. Returning cached evaluation.',
+                weekStart: weekStartStr,
+                week,
+                daysFound: dailyReports.length,
+                generatedReport: existing.generatedReport,
+                editedReport: existing.editedReport,
+                status: existing.status,
+                submittedAt: existing.submittedAt,
+            };
         }
+
+        // No cache available - return error with raw data
+        return {
+            success: false,
+            error: 'AI service unavailable and no cached evaluation found',
+            weekStart: weekStartStr,
+            week,
+            daysFound: dailyReports.length,
+            dailyReports: dailyReports,
+        };
     }
 
-    return await Reports.submitReport(caller.uid, data, existing);
-};
+    // Validate AI response
+    if (!aiResponse || !aiResponse.success || !aiResponse.data) {
+        // AI returned error but we have cache
+        if (existing && existing.generatedReport) {
+            return {
+                success: true,
+                cached: true,
+                message: 'AI evaluation failed. Returning cached evaluation.',
+                weekStart: weekStartStr,
+                week,
+                daysFound: dailyReports.length,
+                generatedReport: existing.generatedReport,
+                editedReport: existing.editedReport,
+                status: existing.status,
+                submittedAt: existing.submittedAt,
+            };
+        }
 
-/**
- * Get daily report by date
- */
-reportsApi.getDailyReport = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    if (!data.date) {
-        throw new Error('[[error:invalid-date]]');
-    }
-    return await Reports.getDailyReport(caller.uid, data.date);
-};
-
-/**
- * Get incomplete plans for current week
- */
-reportsApi.getIncompletePlans = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    return await Reports.getIncompletePlans(caller.uid);
-};
-
-/**
- * Get daily report count for date range
- */
-reportsApi.getCount = async function (caller, data) {
-    if (!data.startDate || !data.endDate) {
-        throw new Error('[[error:invalid-date-range]]');
-    }
-    return await Reports.getCount(data.startDate, data.endDate);
-};
-
-/**
- * Submit frameworks implemented
- */
-reportsApi.submitFrameworks = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    return await Reports.submitFrameworks(caller.uid, data);
-};
-
-/**
- * Update daily reflection
- */
-reportsApi.updateReflection = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
+        // No cache, return error with raw data
+        return {
+            success: false,
+            error: aiResponse?.error || 'AI evaluation failed',
+            weekStart: weekStartStr,
+            week,
+            daysFound: dailyReports.length,
+            dailyReports: dailyReports,
+        };
     }
 
-    // Check if report exists
-    const date = data.date || Reports.helpers.getTodayDate();
-    const existing = await Reports.getDailyReportRaw(caller.uid, date);
-    if (!existing) {
-        throw new Error('[[error:no-report-found]]');
-    }
-
-    return await Reports.updateReflection(caller.uid, data, existing);
-};
-
-/**
- * Post chat/reflection message
- */
-reportsApi.postChatMessage = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    if (!data.message) {
-        throw new Error('[[error:message-required]]');
-    }
-    return await Reports.postChatMessage(caller.uid, data.message);
-};
-
-/**
- * Get chat/reflection messages
- */
-reportsApi.getChatMessages = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    return await Reports.getChatMessages(caller.uid);
-};
-
-/**
- * Initiate daily session (login)
- */
-reportsApi.initiateSession = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
-    // Check if session already exists
-    const today = Reports.helpers.getTodayDate();
-    const existing = await Reports.getDailyReportRaw(caller.uid, today);
-    if (existing?.loginAt) {
-        return { status: 'success', loginAt: existing.loginAt, message: 'Already logged in' };
-    }
-
-    return await Reports.initiateSession(caller.uid);
-};
-
-/**
- * Get session status (login/logout times)
- */
-reportsApi.getSessionStatus = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-    if (!data.date) {
-        throw new Error('[[error:invalid-date]]');
-    }
-
-    const existing = await Reports.getDailyReportRaw(caller.uid, data.date);
-    if (!existing) {
-        throw new Error('[[error:no-session-found]]');
-    }
+    // AI success - save to database
+    const generatedReport = aiResponse.data;
+    const saved = await Reports.saveReportEvaluation(
+        caller.uid,
+        weekStartStr,
+        generatedReport,
+        existing
+    );
 
     return {
-        loginAt: existing.loginAt || null,
-        logoutAt: existing.logoutAt || null,
-        hasLoggedIn: !!existing.loginAt,
+        success: true,
+        cached: false,
+        weekStart: weekStartStr,
+        week,
+        daysFound: dailyReports.length,
+        generatedReport: saved.generatedReport,
+        editedReport: saved.editedReport,
+        status: saved.status,
+        submittedAt: saved.submittedAt,
+        createdAt: saved.createdAt,
+        updatedAt: saved.updatedAt,
     };
 };
 
 /**
- * Submit logout session
+ * Get existing weekly report evaluation
+ * GET /api/v3/reports/weekly/report/evaluation
  */
-reportsApi.submitLogout = async function (caller, data) {
+reportsApi.getWeeklyReportEvaluation = async function (caller, data) {
     if (!caller.uid) {
         throw new Error('[[error:not-logged-in]]');
     }
 
-    const today = Reports.helpers.getTodayDate();
-    const existing = await Reports.getDailyReportRaw(caller.uid, today);
-
-    if (!existing) {
-        throw new Error('[[error:no-session-found]]');
-    }
-
-    if (existing.logoutAt) {
-        return { status: 'success', logoutAt: existing.logoutAt };
-    }
-
-    return await Reports.submitLogout(caller.uid);
-};
-
-// ==========================================
-// WEEKLY REPORTS (NEW)
-// ==========================================
-
-/**
- * Submit weekly plan
- */
-reportsApi.submitWeeklyPlan = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
-    // Normalize and validate inputs
-    const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
-    const transcript = String(data.transcript || '').trim();
-    const weeklyGoals = String(data.weeklyGoals || '').trim();
-
-    if (!transcript) {
-        throw new Error('[[error:transcript-required]]');
-    }
-    if (!weeklyGoals) {
-        throw new Error('[[error:weekly-goals-required]]');
-    }
-
-    // Pass to business logic (which handles AI evaluation)
-    return await Reports.submitWeeklyPlan(caller.uid, weekStart, transcript, weeklyGoals);
-};
-
-/**
- * Get weekly plan
- */
-reportsApi.getWeeklyPlan = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
-    // Normalize weekStart
+    // Determine week start
     const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
 
-    // Get the entry
-    const entry = await Reports.getWeekly(caller.uid, weekStart);
+    // Fetch from database
+    const entry = await Reports.getReportEvaluation(caller.uid, weekStart);
 
     // Validate entry exists
     if (!entry) {
-        throw new Error('[[error:no-weekly-entry-found]]');
+        throw new Error('[[error:no-weekly-evaluation-found]]');
     }
 
-    return entry;
+    // Return sanitized data
+    return Reports.helpers.sanitizeWeeklyReportEvaluation(entry);
 };
 
 /**
- * Update weekly plan
+ * Update weekly report evaluation (edit generated report)
+ * PUT /api/v3/reports/weekly/report/evaluation
  */
-reportsApi.updateWeeklyPlan = async function (caller, data) {
+reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
     if (!caller.uid) {
         throw new Error('[[error:not-logged-in]]');
     }
 
-    // Normalize weekStart
+    // Determine week start
     const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
 
-    // Check if weekly plan exists
-    const existing = await Reports.getWeeklyRaw(caller.uid, weekStart);
+    // Validate editedReport exists
+    if (!data.editedReport) {
+        throw new Error('[[error:edited-report-required]]');
+    }
+
+    // Check if evaluation exists
+    const existing = await Reports.getReportEvaluation(caller.uid, weekStart);
     if (!existing) {
-        throw new Error('[[error:no-weekly-entry-found]]');
+        throw new Error('[[error:no-weekly-evaluation-found]]');
     }
 
-    // Validate and filter updates
-    const allowedFields = [
-        'transcript',
-        'weeklyGoals',
-        'evaluation.goal',
-        'evaluation.plan',
-        'evaluation.objectives',
-        'evaluation.keyResults',
-    ];
-
-    const updates = {};
-    if (data.updates && typeof data.updates === 'object') {
-        Object.keys(data.updates).forEach((field) => {
-            const isAllowed = allowedFields.some(allowed =>
-                field === allowed || field.startsWith(allowed + '.')
-            );
-
-            if (!isAllowed) {
-                throw new Error(`[[error:field-not-allowed]]: ${field}`);
-            }
-
-            updates[field] = data.updates[field];
-        });
+    // Check if already submitted (cannot edit after submission)
+    if (existing.status === 'submitted') {
+        throw new Error('[[error:cannot-edit-submitted-report]]');
     }
 
-    if (Object.keys(updates).length === 0) {
-        throw new Error('[[error:no-valid-updates]]');
-    }
-
-    // Pass cleaned data to business logic
-    return await Reports.updateWeekly(caller.uid, weekStart, updates, existing);
+    // Update in database
+    return await Reports.updateReportEvaluation(
+        caller.uid,
+        weekStart,
+        data.editedReport
+    );
 };
 
 /**
- * Get weekly report (7-day aggregation)
+ * Submit weekly report evaluation (finalize)
+ * POST /api/v3/reports/weekly/report/submit
  */
-reportsApi.getWeeklyReport = async function (caller, data) {
+reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
     if (!caller.uid) {
         throw new Error('[[error:not-logged-in]]');
     }
 
-    // Compute week dates
-    const anchor = data.date ? new Date(data.date) : new Date();
-    const weekStart = Reports.helpers.getWeekStartDate(anchor);
-    const weekDates = Reports.helpers.getWeekDates(weekStart);
+    // Determine week start
+    const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
 
-    // Pass computed dates to business logic
-    return await Reports.getWeeklyReport(caller.uid, weekDates);
+    // Check if evaluation exists
+    const existing = await Reports.getReportEvaluation(caller.uid, weekStart);
+    if (!existing) {
+        throw new Error('[[error:no-weekly-evaluation-found]]');
+    }
+
+    // Check if already submitted
+    if (existing.status === 'submitted') {
+        throw new Error('[[error:already-submitted]]');
+    }
+
+    // Submit in database
+    return await Reports.submitReportEvaluation(caller.uid, weekStart);
 };

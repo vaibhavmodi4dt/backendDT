@@ -124,15 +124,20 @@ module.exports = function (User) {
 		return userData.uid;
 	}
 
-	async function storePassword(uid, password) {
+	async function storePassword(uid, password, doNotHash = false) {
 		if (!password) {
 			return;
 		}
-		const hash = await User.hashPassword(password);
+		let toStore;
+		if (doNotHash) {
+			toStore = password
+		} else {
+			toStore = await User.hashPassword(password);
+		}
 		await Promise.all([
 			User.setUserFields(uid, {
-				password: hash,
-				'password:shaWrapped': 1,
+				password: toStore,
+				'password:shaWrapped': doNotHash ? 1 : 0,
 			}),
 			User.reset.updateExpiry(uid),
 		]);
