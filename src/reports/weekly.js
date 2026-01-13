@@ -1,5 +1,9 @@
 'use strict';
 
+const _ = require('lodash');
+const winston = require('winston');
+const { CronJob } = require('cron');
+
 const db = require('../database');
 const AiAgentService = require('../services/ai-agent');
 const utils = require('../utils');
@@ -269,5 +273,236 @@ WeeklyReports.submitReportEvaluation = async function (uid, weekStart) {
         week: helpers.getWeekNumber(weekStart),
         status: 'submitted',
         submittedAt: currentTime,
+    };
+};
+
+// ==========================================
+// SCHEDULER: START CRON JOBS
+// ==========================================
+
+/**
+ * Start weekly report cron job
+ * Called from main application startup
+ */
+WeeklyReports.startScheduler = function () {
+    winston.verbose('[reports:weekly] Starting scheduled jobs.');
+
+    // Generate weekly reports every Sunday at 11:00 PM
+    new CronJob('0 23 * * 0', async () => {
+        try {
+            winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
+            await WeeklyReports.generateAllWeeklyReports();
+        } catch (err) {
+            winston.error('[reports:weekly] ❌ Error in weekly generation:', err.stack);
+        }
+    }, null, true);
+
+    winston.info('[reports:weekly] ✅ Scheduler started: Weekly reports every Sunday at 11:00 PM');
+};
+
+// ==========================================
+// SCHEDULER: GENERATE ALL WEEKLY REPORTS
+// ==========================================
+
+/**
+ * Generate weekly reports for all active users
+ * Called by cron job every Sunday at 11 PM
+ */
+WeeklyReports.generateAllWeeklyReports = async function () {
+    const startTime = utils.date.now();
+    winston.info('[reports:weekly] 📊 Starting automated weekly report generation...');
+
+    try {
+        // Get all active users who submitted at least 1 report this week
+        const activeUsers = await WeeklyReports.getActiveUsers();
+
+        if (activeUsers.length === 0) {
+            winston.info('[reports:weekly] ℹ️  No active users found. Nothing to generate.');
+            return { success: true, usersProcessed: 0 };
+        }
+
+        winston.info(`[reports:weekly] 👥 Found ${activeUsers.length} active users to process.`);
+
+        // Process in batches
+        const batchSize = 10;
+        let successful = 0;
+        let failed = 0;
+        let skipped = 0;
+
+        for (let i = 0; i < activeUsers.length; i += batchSize) {
+            const batch = activeUsers.slice(i, i + batchSize);
+            const batchNum = Math.floor(i / batchSize) + 1;
+            const totalBatches = Math.ceil(activeUsers.length / batchSize);
+
+            winston.info(`[reports:weekly] 📦 Processing batch ${batchNum}/${totalBatches}`);
+
+            await Promise.all(batch.map(async (uid) => {
+                try {
+                    const result = await WeeklyReports.generateForUser(uid);
+
+                    if (result.skipped) {
+                        skipped++;
+                        winston.verbose(`[reports:weekly] ⏭️  Skipped user ${uid}: ${result.reason}`);
+                    } else {
+                        successful++;
+                        winston.verbose(`[reports:weekly] ✅ Generated for user ${uid} (${result.daysReported} days)`);
+                    }
+                } catch (error) {
+                    failed++;
+                    winston.error(`[reports:weekly] ❌ Failed for user ${uid}: ${error.message}`);
+                }
+            }));
+
+            // Small delay between batches
+            if (i + batchSize < activeUsers.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        const duration = ((utils.date.now() - startTime) / 1000).toFixed(2);
+        winston.info(`[reports:weekly] ✨ Completed in ${duration}s`);
+        winston.info(`[reports:weekly] 📈 Results: ${successful} successful, ${skipped} skipped, ${failed} failed`);
+
+        return {
+            success: true,
+            total: activeUsers.length,
+            successful,
+            skipped,
+            failed,
+            duration
+        };
+    } catch (error) {
+        winston.error('[reports:weekly] 💥 Critical error:', error.stack);
+        throw error;
+    }
+};
+
+// ==========================================
+// SCHEDULER: GENERATE FOR SINGLE USER
+// ==========================================
+
+/**
+ * Generate weekly report for a single user
+ */
+WeeklyReports.generateForUser = async function (uid) {
+    // Use DateUtils to get current week start (Monday)
+    const nowTimestamp = utils.date.now();
+    const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
+    const weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
+    const weekDates = helpers.getWeekDates(weekStartStr);
+
+    // Fetch daily reports
+    const dailyReports = await WeeklyReports.fetchDailyReports(uid, weekDates);
+
+    // Skip if no reports
+    if (dailyReports.length === 0) {
+        return { skipped: true, reason: 'no_daily_reports' };
+    }
+
+    // Check if already exists
+    const existing = await WeeklyReports.getReportEvaluation(uid, weekStartStr);
+
+    // Skip if already submitted
+    if (existing && existing.status === 'submitted') {
+        return { skipped: true, reason: 'already_submitted' };
+    }
+
+    // Call AI
+    let aiResponse;
+    try {
+        aiResponse = await WeeklyReports.callAiEvaluation(dailyReports);
+    } catch (error) {
+        if (existing && existing.generatedReport) {
+            return { skipped: true, reason: 'cached', cached: true };
+        }
+        throw new Error(`AI service failed: ${error.message}`);
+    }
+
+    // Validate response
+    if (!aiResponse || !aiResponse.success || !aiResponse.data) {
+        if (existing && existing.generatedReport) {
+            return { skipped: true, reason: 'cached', cached: true };
+        }
+        throw new Error('AI returned invalid response');
+    }
+
+    // Save
+    await WeeklyReports.saveReportEvaluation(
+        uid,
+        weekStartStr,
+        aiResponse.data,
+        existing
+    );
+
+    return {
+        success: true,
+        daysReported: dailyReports.length,
+        weekStart: weekStartStr
+    };
+};
+
+// ==========================================
+// SCHEDULER: GET ACTIVE USERS
+// ==========================================
+
+/**
+ * Get users who submitted at least 1 daily report this week
+ */
+WeeklyReports.getActiveUsers = async function () {
+    const weekStart = helpers.getCurrentWeekStart();
+    const weekDates = helpers.getWeekDates(weekStart);
+    const activeUsers = new Set();
+
+    for (const dateISO of weekDates) {
+        const pattern = `reports:daily:user:*:${dateISO}`;
+        const allKeys = await db.getKeys(pattern, reportsCollection);
+
+        allKeys.forEach((key) => {
+            if (key.includes(dateISO)) {
+                const parts = key.split(':');
+                if (parts.length >= 5) {
+                    const uid = parseInt(parts[3], 10);
+                    if (!isNaN(uid) && uid > 0) {
+                        activeUsers.add(uid);
+                    }
+                }
+            }
+        });
+    }
+
+    return Array.from(activeUsers);
+};
+
+// ==========================================
+// SCHEDULER: MANUAL TRIGGER
+// ==========================================
+
+/**
+ * Manual trigger for testing
+ * Usage: WeeklyReports.manualTrigger() or WeeklyReports.manualTrigger({ uid: 6339 })
+ */
+WeeklyReports.manualTrigger = async function (options = {}) {
+    winston.info('[reports:weekly] 🔧 Manual trigger initiated', options);
+
+    if (options.uid) {
+        winston.info(`[reports:weekly] Generating for user ${options.uid}...`);
+        return await WeeklyReports.generateForUser(options.uid);
+    } else {
+        winston.info('[reports:weekly] Generating for all users...');
+        return await WeeklyReports.generateAllWeeklyReports();
+    }
+};
+
+/**
+ * Get scheduler status
+ */
+WeeklyReports.getSchedulerStatus = function () {
+    return {
+        enabled: true,
+        job: {
+            name: 'Weekly Report Generation',
+            schedule: '0 23 * * 0',
+            description: 'Every Sunday at 11:00 PM',
+        },
     };
 };
