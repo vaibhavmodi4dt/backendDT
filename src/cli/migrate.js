@@ -243,6 +243,7 @@ function MigrateCommands() {
 				const deptId = deptIdStr ? parseInt(deptIdStr, 10) : null;
 				const roleId = roleIdStr ? parseInt(roleIdStr, 10) : null;
 				const memberType = (fields[colMap.memberType] && fields[colMap.memberType].trim()) || 'member';
+				const status = (fields[colMap.status] && fields[colMap.status].trim()) || 'active';
 
 				// Check if user exists
 				let uid = await getUserByUsernameOrEmail(username, email);
@@ -356,10 +357,20 @@ function MigrateCommands() {
 		const membershipData = { type: memberType };
 
 		if (deptId) {
+			// Validate department exists
+			const deptExists = await organizations.departmentExists(deptId);
+			if (!deptExists) {
+				throw new Error(`Department ${deptId} does not exist`);
+			}
 			membershipData.departmentId = deptId;
 		}
 
 		if (roleId) {
+			// Validate role exists
+			const roleExists = await organizations.roleExists(roleId);
+			if (!roleExists) {
+				throw new Error(`Role ${roleId} does not exist`);
+			}
 			membershipData.roleId = roleId;
 		}
 
