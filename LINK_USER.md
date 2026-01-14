@@ -5,6 +5,7 @@ This script manages the hierarchical linking of users to organizations, departme
 ## Overview
 
 The `link-user` command provides a robust, idempotent way to link users to organizations, departments, and roles with intelligent flow control that:
+- Supports both **individual** and **bulk CSV-based** linking
 - Validates all entities before linking
 - Checks for existing relationships to avoid duplicates
 - Logs all actions with timestamps
@@ -13,11 +14,21 @@ The `link-user` command provides a robust, idempotent way to link users to organ
 
 ## Usage
 
+### Individual User Linking
+
 ```bash
 ./nodebb migrate link-user [options]
 ```
 
+### Bulk User Linking from CSV
+
+```bash
+./nodebb migrate link-user -f link-users-sample.csv [options]
+```
+
 ### Required Options
+
+**For Individual Linking:**
 
 At least one user identifier:
 - `-u, --user-id <uid>` - User ID (numeric)
@@ -26,27 +37,96 @@ At least one user identifier:
 And organization:
 - `-o, --organization-id <orgId>` - Organization ID (required)
 
+**For Bulk CSV Linking:**
+
+- `-f, --file <path>` - Path to CSV file containing user linking data
+
 ### Optional Options
 
-- `-d, --department-id <deptId>` - Department ID to link to
-- `-r, --role-id <roleId>` - Role ID to assign
+- `-d, --department-id <deptId>` - Department ID to link to (individual linking only)
+- `-r, --role-id <roleId>` - Role ID to assign (individual linking only)
+- `--skip-existing` - Skip users that already have the specified links (CSV linking only)
 - `--dry-run` - Show what would be done without making changes
+
+## CSV File Format
+
+For bulk linking, the CSV file should have the following columns:
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| Username | Yes* | Username of the user |
+| User ID | Yes* | User ID (if Username not provided) |
+| Organization ID | Yes | ID of the organization |
+| Department ID | No | ID of the department to link to |
+| Role ID | No | ID of the role to assign |
+
+*Either Username or User ID must be provided.
+
+**Sample CSV (`link-users-sample.csv`):**
+
+```csv
+Username,User ID,Organization ID,Department ID,Role ID
+john.doe,,1,5,15
+jane.smith,,2,10,25
+,,42,1,8,20
+```
 
 ## Examples
 
-### Basic: Link user to organization only
+### Individual Linking
+
+#### Basic: Link user to organization only
 
 ```bash
 ./nodebb migrate link-user --username john.doe --organization-id 1
 ```
 
-### Link user to organization and department
+#### Link user to organization and department
 
 ```bash
 ./nodebb migrate link-user --user-id 42 --organization-id 1 --department-id 5
 ```
 
-### Complete: Link user to organization, department, and role
+#### Complete: Link user to organization, department, and role
+
+```bash
+./nodebb migrate link-user \
+  --username jane.smith \
+  --organization-id 2 \
+  --department-id 10 \
+  --role-id 25
+```
+
+#### Dry run to test without changes
+
+```bash
+./nodebb migrate link-user \
+  --username john.doe \
+  --organization-id 1 \
+  --department-id 5 \
+  --role-id 15 \
+  --dry-run
+```
+
+### Bulk CSV Linking
+
+#### Import user links from CSV
+
+```bash
+./nodebb migrate link-user -f link-users-sample.csv
+```
+
+#### Dry run with CSV to see what would happen
+
+```bash
+./nodebb migrate link-user -f link-users-sample.csv --dry-run
+```
+
+#### Skip users that already have the links
+
+```bash
+./nodebb migrate link-user -f link-users-sample.csv --skip-existing
+```
 
 ```bash
 ./nodebb migrate link-user \

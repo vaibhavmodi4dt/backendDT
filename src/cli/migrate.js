@@ -44,12 +44,14 @@ module.exports = () => {
 
 	migrateCmd
 		.command('link-user')
-		.description('Link a user to organization, department, and role with intelligent flow control')
-		.option('-u, --user-id <uid>', 'User ID')
-		.option('-n, --username <username>', 'Username')
+		.description('Link users to organization, department, and role with intelligent flow control')
+		.option('-f, --file <path>', 'Path to CSV file for bulk linking')
+		.option('-u, --user-id <uid>', 'User ID (for individual linking)')
+		.option('-n, --username <username>', 'Username (for individual linking)')
 		.option('-o, --organization-id <orgId>', 'Organization ID', parseInt)
 		.option('-d, --department-id <deptId>', 'Department ID', parseInt)
 		.option('-r, --role-id <roleId>', 'Role ID', parseInt)
+		.option('--skip-existing', 'Skip users that already have the specified links', false)
 		.option('--dry-run', 'Show what would be done without making changes', false)
 		.action((...args) => execute(migrateCommands.linkUser, args));
 
@@ -215,6 +217,23 @@ function MigrateCommands() {
 	};
 
 	Commands.linkUser = async function (opts) {
+		const winston = require('winston');
+		const chalk = require('chalk');
+		const db = require('../database');
+		const user = require('../user');
+		const organizations = require('../organizations');
+
+		// Check if CSV file is provided
+		if (opts.file) {
+			// CSV-based bulk linking
+			return await linkUsersBulk(opts);
+		}
+
+		// Individual user linking (original implementation)
+		return await linkUserIndividual(opts);
+	};
+
+	async function linkUserIndividual(opts) {
 		const winston = require('winston');
 		const chalk = require('chalk');
 		const db = require('../database');
@@ -437,7 +456,248 @@ function MigrateCommands() {
 			console.error(chalk.gray(err.stack));
 			process.exit(1);
 		}
-	};
+	}
+
+	async function linkUsersBulk(opts) {
+		const winston = require('winston');
+		const chalk = require('chalk');
+		const fs = require('fs').promises;
+		const path = require('path');
+		const db = require('../database');
+		const user = require('../user');
+		const organizations = require('../organizations');
+
+		const filePath = path.resolve(opts.file);
+		winston.info(`[link-user-bulk] Reading CSV file: ${filePath}`);
+
+		try {
+			// Check if file exists
+			await fs.access(filePath);
+
+			await db.init();
+
+			// Read and parse CSV
+			const csvContent = await fs.readFile(filePath, 'utf-8');
+			const lines = csvContent.split('\n').filter(line => line.trim());
+
+			if (lines.length <= 1) {
+				throw new Error('CSV file is empty or has no data rows');
+			}
+
+			// Parse header
+			const header = parseCSVRow(lines[0]).map(h => h.trim().replace(/"/g, ''));
+			const rows = lines.slice(1);
+
+			console.log(chalk.blue(`\n=== Bulk User Linking ===`));
+			console.log(`Processing ${rows.length} user(s) from CSV`);
+
+			// Determine column indices
+			const colMap = {
+				userId: header.indexOf('User ID'),
+				username: header.indexOf('Username'),
+				orgId: header.indexOf('Organization ID'),
+				deptId: header.indexOf('Department ID'),
+				roleId: header.indexOf('Role ID'),
+			};
+
+			// Validate required columns
+			if (colMap.username === -1 && colMap.userId === -1) {
+				throw new Error('CSV must have either "Username" or "User ID" column');
+			}
+
+			if (colMap.orgId === -1) {
+				throw new Error('CSV must have "Organization ID" column');
+			}
+
+			let successCount = 0;
+			let errorCount = 0;
+			let skippedCount = 0;
+			const errors = [];
+
+			// Process each row
+			for (let i = 0; i < rows.length; i++) {
+				const rowNum = i + 2;
+				try {
+					const fields = parseCSVRow(rows[i]);
+
+					// Extract user identifier
+					const userIdStr = fields[colMap.userId] && fields[colMap.userId].trim();
+					const username = fields[colMap.username] && fields[colMap.username].trim();
+
+					if (!userIdStr && !username) {
+						winston.warn(`[link-user-bulk] Row ${rowNum}: Skipping - no user identifier`);
+						skippedCount++;
+						continue;
+					}
+
+					// Extract organization, department, role IDs
+					const orgIdStr = fields[colMap.orgId] && fields[colMap.orgId].trim();
+					const deptIdStr = fields[colMap.deptId] && fields[colMap.deptId].trim();
+					const roleIdStr = fields[colMap.roleId] && fields[colMap.roleId].trim();
+
+					if (!orgIdStr) {
+						winston.warn(`[link-user-bulk] Row ${rowNum}: Skipping - no organization ID`);
+						skippedCount++;
+						continue;
+					}
+
+					const userId = userIdStr ? parseInt(userIdStr, 10) : null;
+					const orgId = parseInt(orgIdStr, 10);
+					const deptId = deptIdStr ? parseInt(deptIdStr, 10) : null;
+					const roleId = roleIdStr ? parseInt(roleIdStr, 10) : null;
+
+					// Get user ID
+					let uid = userId;
+					if (!uid && username) {
+						uid = await db.sortedSetScore('username:uid', username);
+						if (!uid) {
+							throw new Error(`User "${username}" not found`);
+						}
+					}
+
+					if (!uid) {
+						throw new Error('Unable to determine user ID');
+					}
+
+					// Check if user exists
+					const userExists = await user.exists(uid);
+					if (!userExists) {
+						throw new Error(`User with ID ${uid} does not exist`);
+					}
+
+					// Check if organization exists
+					const orgExists = await organizations.exists(orgId);
+					if (!orgExists) {
+						throw new Error(`Organization ${orgId} does not exist`);
+					}
+
+					// Check if user is already member of organization
+					const isMember = await organizations.isMember(orgId, uid);
+					let membershipId = null;
+					let membershipCreated = false;
+
+					if (!isMember) {
+						if (opts.dryRun) {
+							winston.info(`[link-user-bulk] Row ${rowNum}: [DRY RUN] Would create membership for user ${uid} in org ${orgId}`);
+						} else {
+							// Create base membership
+							const membership = await organizations.membership.join(orgId, uid, { type: 'member' });
+							membershipId = membership.membershipId;
+							membershipCreated = true;
+							winston.info(`[link-user-bulk] Row ${rowNum}: Created membership ${membershipId} for user ${uid}`);
+						}
+					} else {
+						// Get existing membership
+						const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+						if (memberships && memberships.length > 0) {
+							membershipId = memberships[0].membershipId;
+						}
+					}
+
+					// Link to department if provided
+					if (deptId) {
+						const deptExists = await organizations.departmentExists(deptId);
+						if (!deptExists) {
+							throw new Error(`Department ${deptId} does not exist`);
+						}
+
+						const dept = await organizations.getDepartment(deptId);
+						if (String(dept.organizationId) !== String(orgId)) {
+							throw new Error(`Department ${deptId} does not belong to organization ${orgId}`);
+						}
+
+						// Check if already linked
+						const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+						const hasThisDept = memberships.some(m => String(m.departmentId) === String(deptId));
+
+						if (!hasThisDept) {
+							if (opts.skipExisting) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: Skipping department link for user ${uid}`);
+								skippedCount++;
+								continue;
+							}
+
+							if (opts.dryRun) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: [DRY RUN] Would link user ${uid} to department ${deptId}`);
+							} else if (membershipId) {
+								await organizations.membership.update(membershipId, { departmentId: deptId });
+								winston.info(`[link-user-bulk] Row ${rowNum}: Linked user ${uid} to department ${deptId}`);
+							}
+						}
+					}
+
+					// Assign role if provided
+					if (roleId) {
+						const roleExists = await organizations.roleExists(roleId);
+						if (!roleExists) {
+							throw new Error(`Role ${roleId} does not exist`);
+						}
+
+						const role = await organizations.getRole(roleId);
+						if (String(role.organizationId) !== String(orgId)) {
+							throw new Error(`Role ${roleId} does not belong to organization ${orgId}`);
+						}
+
+						// Check if already linked
+						const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+						const hasThisRole = memberships.some(m => String(m.roleId) === String(roleId));
+
+						if (!hasThisRole) {
+							if (opts.skipExisting) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: Skipping role assignment for user ${uid}`);
+								skippedCount++;
+								continue;
+							}
+
+							if (opts.dryRun) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: [DRY RUN] Would assign role ${roleId} to user ${uid}`);
+							} else if (membershipId) {
+								await organizations.membership.update(membershipId, { roleId });
+								winston.info(`[link-user-bulk] Row ${rowNum}: Assigned role ${roleId} to user ${uid}`);
+							}
+						}
+					}
+
+					successCount++;
+				} catch (err) {
+					errorCount++;
+					const errorMsg = `Row ${rowNum}: ${err.message}`;
+					winston.error(`[link-user-bulk] ${errorMsg}`);
+					errors.push(errorMsg);
+				}
+			}
+
+			// Display summary
+			console.log(chalk.blue('\n=== Summary ==='));
+			console.log(chalk.green(`✓ Successful: ${successCount}`));
+			if (skippedCount > 0) {
+				console.log(chalk.yellow(`⊘ Skipped: ${skippedCount}`));
+			}
+			if (errorCount > 0) {
+				console.log(chalk.red(`✗ Errors: ${errorCount}`));
+			}
+
+			if (errors.length > 0 && errors.length <= 10) {
+				console.log(chalk.yellow('\nErrors encountered:'));
+				errors.forEach(err => console.log(chalk.red(`  ✗ ${err}`)));
+			} else if (errors.length > 10) {
+				console.log(chalk.yellow(`\nErrors encountered: ${errors.length} (showing first 10)`));
+				errors.slice(0, 10).forEach(err => console.log(chalk.red(`  ✗ ${err}`)));
+			}
+
+			if (opts.dryRun) {
+				console.log(chalk.yellow('\n[DRY RUN] No changes were made to the database'));
+			}
+
+			console.log(chalk.green('\n✓ Bulk linking process completed'));
+			process.exit(0);
+		} catch (err) {
+			winston.error(`[link-user-bulk] Error: ${err.message}`);
+			console.error(chalk.red(`\n✗ Error: ${err.message}`));
+			console.error(chalk.gray(err.stack));
+			process.exit(1);
+		}
+	}
 
 	Commands.validate = async function (opts) {
 		const winston = require('winston');

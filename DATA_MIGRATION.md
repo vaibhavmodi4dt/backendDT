@@ -330,7 +330,9 @@ If needed, you can revert the migration by:
 
 ## Individual User Linking Command
 
-For precise control over individual user-to-organization relationships, use the `link-user` command:
+For precise control over user-to-organization relationships, use the `link-user` command with either individual parameters or CSV file for bulk operations:
+
+### Individual Linking
 
 ```bash
 ./nodebb migrate link-user \
@@ -340,20 +342,39 @@ For precise control over individual user-to-organization relationships, use the 
   --role-id 15
 ```
 
+### Bulk CSV Linking
+
+```bash
+./nodebb migrate link-user -f link-users-sample.csv
+```
+
+**CSV Format (`link-users-sample.csv`):**
+```csv
+Username,User ID,Organization ID,Department ID,Role ID
+john.doe,,1,5,15
+jane.smith,,2,10,25
+,,42,1,8,20
+```
+
+Either Username or User ID must be provided. Organization ID is required.
+
 ### Features
 
+- **Individual or Bulk Operations**: Link single users via command-line or multiple users via CSV
 - **Intelligent Flow Control**: Automatically detects existing relationships and only creates missing ones
 - **Idempotent**: Safe to run multiple times with the same parameters
 - **Comprehensive Validation**: Validates all entities before making changes
 - **Dry Run Support**: Test with `--dry-run` before making actual changes
+- **Skip Existing**: Use `--skip-existing` to skip users that already have the specified links (CSV mode)
 - **Clear Feedback**: Color-coded status messages for each step
 
 ### Use Cases
 
 - Link a single user to specific department/role after bulk import
+- Bulk link multiple users from CSV file
 - Update user relationships without re-importing entire CSV
 - Test relationships with dry-run before committing
-- Precise control over individual user assignments
+- Precise control over individual or group user assignments
 
 ### Example: Link User to Organization Only
 
