@@ -1,38 +1,110 @@
-# User CSV Migration
+# Data Migration Guide
 
-This document describes the user migration functionality that reads `user.csv` and creates/updates users with organization and department memberships.
+This document describes the data migration functionality that reads CSV files and creates/updates users, organizations, departments, and roles.
 
 ## Migration Methods
 
-There are two ways to migrate users:
+There are two ways to migrate data:
 
 ### 1. CLI Command (Recommended)
 
-Use the new `migrate` CLI command for on-demand data migrations:
+Use the `migrate` CLI command for on-demand data migrations:
 
 ```bash
 # Validate CSV before importing
-./nodebb migrate validate -f user.csv -t users
+./nodebb migrate validate -f <file>.csv -t <type>
 
-# Import users with organization memberships
-./nodebb migrate users -f user.csv
+# Import data
+./nodebb migrate <type> -f <file>.csv
 
-# Import users, skipping existing users
-./nodebb migrate users -f user.csv --skip-existing
-
-# Dry run to validate without making changes
-./nodebb migrate users -f user.csv --dry-run
+# Options: --skip-existing, --dry-run
+./nodebb migrate <type> -f <file>.csv --dry-run
 ```
+
+**Supported types:** `users`, `organizations`, `departments`, `roles`
 
 ### 2. Automatic Upgrade Script
 
-The migration will also run automatically during the upgrade process:
+User migration also runs automatically during the upgrade process:
 
 ```bash
 ./nodebb upgrade
 ```
 
 The upgrade script (`src/upgrades/4.7.0/migrate-users-from-csv.js`) processes the `user.csv` file during schema upgrades.
+
+## CLI Command Usage
+
+### Organizations
+
+Import organizations from CSV:
+
+```bash
+# Validate organizations CSV
+./nodebb migrate validate -f organizations-sample.csv -t organizations
+
+# Import organizations
+./nodebb migrate organizations -f organizations-sample.csv
+
+# Skip existing organizations
+./nodebb migrate organizations -f organizations-sample.csv --skip-existing
+
+# Dry run
+./nodebb migrate organizations -f organizations-sample.csv --dry-run
+```
+
+**CSV Format (organizations-sample.csv):**
+- **Name** (required): Organization name
+- **Sector**: Industry sector
+- **Website**: Organization website URL
+- **About**: Description of the organization
+- **Employee Range**: Size of the organization (e.g., "50-200")
+
+### Departments
+
+Import departments from CSV:
+
+```bash
+# Validate departments CSV
+./nodebb migrate validate -f departments-sample.csv -t departments
+
+# Import departments
+./nodebb migrate departments -f departments-sample.csv
+```
+
+**CSV Format (departments-sample.csv):**
+- **Name** (required): Department name
+- **Description**: Department description
+- **Organization ID** (required): ID of the parent organization
+- **Parent Department ID**: ID of parent department (for nested departments)
+- **Level**: Hierarchy level (0 for root departments)
+
+**Note:** Organizations must be created before importing departments.
+
+### Roles
+
+Import roles from CSV:
+
+```bash
+# Validate roles CSV
+./nodebb migrate validate -f roles-sample.csv -t roles
+
+# Import roles
+./nodebb migrate roles -f roles-sample.csv
+```
+
+**CSV Format (roles-sample.csv):**
+- **Name** (required): Role name
+- **Description**: Role description
+- **Organization ID** (required): ID of the parent organization
+- **Department ID**: ID of department (for department-scoped roles)
+- **Scope**: "organization" or "department" (defaults to "organization")
+
+**Note:** Organizations must be created before importing roles. If assigning to a department, that department must exist.
+
+### Users
+
+Import users from CSV:
 
 ## Features
 
@@ -54,9 +126,21 @@ The migration functionality performs the following operations:
    - Handles duplicate memberships by removing and recreating them
    - Comprehensive error handling with detailed logging
 
-## CSV File Format
+```bash
+# Validate users CSV
+./nodebb migrate validate -f user.csv -t users
 
-The `user.csv` file should have the following columns:
+# Import users
+./nodebb migrate users -f user.csv
+
+# Skip existing users
+./nodebb migrate users -f user.csv --skip-existing
+
+# Dry run
+./nodebb migrate users -f user.csv --dry-run
+```
+
+**CSV Format (user.csv):**
 
 - **Student Unicorn**: Full name of the user
 - **SU Email**: Email address (required)
