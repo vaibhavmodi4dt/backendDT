@@ -3,27 +3,10 @@
 const db = require('../database');
 const utils = require('../utils');
 const moment = require('moment');
-const axios = require('axios');
-const nconf = require('nconf')
 const { collections } = require('../database/mongo/collections');
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-const token = nconf.get('masterToken')
+const ExternalApiService = require('../services/external-api');
 
 const helpers = module.exports;
-
-// ==========================================
-// CONFIGURATION
-// ==========================================
-
-/**
- * External API endpoints configuration
- * These should be set via environment variables or config file
- */
-helpers.config = {
-    ldiApiBaseUrl: process.env.LDI_API_BASE_URL || 'https://beta.deepthought.education',
-    sdApiBaseUrl: process.env.SD_API_BASE_URL || 'https://beta.deepthought.education',
-    happinessApiBaseUrl: process.env.HAPPINESS_API_BASE_URL || 'https://beta.deepthought.education',
-};
 
 // ==========================================
 // DATE UTILITIES
@@ -116,69 +99,9 @@ helpers.fetchWeeklyReport = async function (uid, weekStart) {
 
 /**
  * Fetch happiness scorecard for a specific week from external API
- * 
- * ⚠️ TEMPORARY: Using hardcoded data until proper API is available
  */
 helpers.fetchHappinessScorecard = async function (uid, weekStart) {
-    // ⭐ HARDCODED DATA - Replace with real API call when available
-    console.log('⚠️  Using hardcoded happiness data (API not available yet)');
-
-    return {
-        totalHappiness: 85,  // Mock happiness score
-        currentWeek: {
-            start: weekStart,
-            end: new Date(new Date(weekStart).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        },
-        response: [
-            { question: 'Overall happiness', answer: '8.5' },
-            { question: 'Work satisfaction', answer: '8.0' },
-            { question: 'Team collaboration', answer: '9.0' },
-        ]
-    };
-
-    /* ========================
-     * COMMENTED OUT - Real API call (enable when API is ready)
-     * ========================
-    try {
-        // Convert weekStart to ISO format for API
-        const weekStartDate = new Date(weekStart).toISOString();
-
-        const response = await axios.get(
-            `${helpers.config.happinessApiBaseUrl}/api/v3/scorecard/happiness/submissions`,
-            {
-                params: {
-                    uid: uid,
-                    weekStart: weekStartDate,
-                },
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                timeout: 10000,
-            }
-        );
-
-        if (response.data && response.data.response) {
-            // Check if response is an array or single object
-            const submissions = Array.isArray(response.data.response)
-                ? response.data.response
-                : [response.data.response];
-
-            // Find the scorecard for this specific week
-            const scorecard = submissions.find(s => {
-                if (!s.currentWeek || !s.currentWeek.start) return false;
-                const scorecardWeekStart = new Date(s.currentWeek.start).toISOString().split('T')[0];
-                return scorecardWeekStart === weekStart;
-            });
-
-            return scorecard || null;
-        }
-
-        return null;
-    } catch (error) {
-        console.error('Error fetching happiness scorecard:', error.response?.data || error.message);
-        return null;
-    }
-    ======================== */
+    return await ExternalApiService.fetchHappinessScorecard(uid, weekStart);
 };
 
 /**
@@ -187,29 +110,9 @@ helpers.fetchHappinessScorecard = async function (uid, weekStart) {
 helpers.fetchLdiPitch = async function (uid, weekStart) {
     try {
         const { year, week } = helpers.getYearAndWeek(weekStart);
-        const ldiKey = `ldi:${year}-week-${String(week)}`;
-
-        const response = await axios.get(
-            `${helpers.config.ldiApiBaseUrl}/api/v3/globals/ldi-participants`,
-            {
-                params: {
-                    key: ldiKey,
-                    _uid: uid,
-                },
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                timeout: 10000,
-            }
-        );
-
-        if (response.data && response.data.response) {
-            return response.data.response;
-        }
-
-        return null;
+        return await ExternalApiService.fetchLdiPitch(uid, year, week);
     } catch (error) {
-        console.error('Error fetching LDI pitch:', error.response?.data || error.message);
+        console.error('Error fetching LDI pitch:', error);
         return null;
     }
 };
@@ -220,29 +123,9 @@ helpers.fetchLdiPitch = async function (uid, weekStart) {
 helpers.fetchSdPitch = async function (uid, weekStart) {
     try {
         const { year, week } = helpers.getYearAndWeek(weekStart);
-
-        const response = await axios.get(
-            `${helpers.config.sdApiBaseUrl}/api/v3/globals/sd-pitch/`,
-            {
-                params: {
-                    week: week,
-                    year: year,
-                    _uid: uid,
-                },
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                timeout: 10000,
-            }
-        );
-
-        if (response.data && response.data.response) {
-            return response.data.response;
-        }
-
-        return null;
+        return await ExternalApiService.fetchSdPitch(uid, year, week);
     } catch (error) {
-        console.error('Error fetching SD pitch:', error.response?.data || error.message);
+        console.error('Error fetching SD pitch:', error);
         return null;
     }
 };

@@ -5,7 +5,7 @@ const Organizations = require('../organizations');
 const User = require('../user');
 const helpers = require('../supervisor/helpers');
 
-const supervisor = module.exports
+const supervisor = module.exports;
 
 // ============================================
 // Dashboard (Summary + Scores)
