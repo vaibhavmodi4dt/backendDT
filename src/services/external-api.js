@@ -5,8 +5,11 @@ const nconf = require('nconf');
 
 // ⚠️ WARNING: TLS certificate verification can be disabled for development only
 // Set DISABLE_TLS_VERIFICATION=true only in development/test environments
-// TODO: Remove this setting in production and use proper certificate validation
+// Production environments will NEVER disable TLS verification
 if (process.env.DISABLE_TLS_VERIFICATION === 'true') {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: Cannot disable TLS verification in production! Remove DISABLE_TLS_VERIFICATION=true');
+    }
     console.warn('⚠️  TLS certificate verification is DISABLED. This should only be used in development!');
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
