@@ -1,6 +1,49 @@
 # Data Migration Guide
 
-This document describes the data migration functionality that reads CSV files and creates/updates users, organizations, departments, and roles.
+This guide describes how to import data from CSV files into the system, including users, organizations, departments, and roles, as well as how to link individual users to these entities.
+
+## Overview
+
+The migration system provides:
+- **CLI commands** for on-demand imports
+- **Validation** before importing
+- **Dry-run mode** to test without making changes
+- **Sample CSV files** to get started quickly
+- **User linking command** for precise relationship management
+
+## Available Commands
+
+### Bulk Import Commands
+- `migrate organizations` - Import organizations from CSV
+- `migrate departments` - Import departments from CSV
+- `migrate roles` - Import roles from CSV
+- `migrate users` - Import users from CSV
+- `migrate validate` - Validate CSV files
+
+### Individual User Management
+- `migrate link-user` - Link a specific user to organization, department, and role with intelligent flow control
+
+See [LINK_USER.md](./LINK_USER.md) for detailed documentation on the user linking command.
+
+## Quick Start (Bulk Import)
+
+1. **Prepare your CSV file** (or use provided samples)
+2. **Validate the CSV**
+3. **Import the data**
+
+## User Linking (Individual Management)
+
+For linking individual users to organizations, departments, and roles:
+
+```bash
+./nodebb migrate link-user \
+  --username john.doe \
+  --organization-id 1 \
+  --department-id 5 \
+  --role-id 15
+```
+
+This command provides intelligent flow control, idempotent operation, and comprehensive validation. See [LINK_USER.md](./LINK_USER.md) for complete documentation.
 
 ## Migration Methods
 
@@ -284,3 +327,73 @@ If needed, you can revert the migration by:
 - User accounts are never deleted, only memberships are updated
 - Organizations, departments, and roles must exist before the migration
 - The CSV file must be in the root directory of the application
+
+## Individual User Linking Command
+
+For precise control over individual user-to-organization relationships, use the `link-user` command:
+
+```bash
+./nodebb migrate link-user \
+  --username john.doe \
+  --organization-id 1 \
+  --department-id 5 \
+  --role-id 15
+```
+
+### Features
+
+- **Intelligent Flow Control**: Automatically detects existing relationships and only creates missing ones
+- **Idempotent**: Safe to run multiple times with the same parameters
+- **Comprehensive Validation**: Validates all entities before making changes
+- **Dry Run Support**: Test with `--dry-run` before making actual changes
+- **Clear Feedback**: Color-coded status messages for each step
+
+### Use Cases
+
+- Link a single user to specific department/role after bulk import
+- Update user relationships without re-importing entire CSV
+- Test relationships with dry-run before committing
+- Precise control over individual user assignments
+
+### Example: Link User to Organization Only
+
+```bash
+./nodebb migrate link-user --username john.doe --organization-id 1
+```
+
+### Example: Link User to Department
+
+```bash
+./nodebb migrate link-user \
+  --user-id 42 \
+  --organization-id 1 \
+  --department-id 5
+```
+
+### Example: Complete Linking with Role
+
+```bash
+./nodebb migrate link-user \
+  --username jane.smith \
+  --organization-id 2 \
+  --department-id 10 \
+  --role-id 25
+```
+
+### Example: Test with Dry Run
+
+```bash
+./nodebb migrate link-user \
+  --username test.user \
+  --organization-id 1 \
+  --department-id 5 \
+  --role-id 15 \
+  --dry-run
+```
+
+See [LINK_USER.md](./LINK_USER.md) for complete documentation including:
+- Detailed execution flow diagram
+- All validation checks performed
+- Error scenarios and handling
+- Best practices
+- Comprehensive troubleshooting guide

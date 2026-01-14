@@ -43,6 +43,17 @@ module.exports = () => {
 		.action((...args) => execute(migrateCommands.roles, args));
 
 	migrateCmd
+		.command('link-user')
+		.description('Link a user to organization, department, and role with intelligent flow control')
+		.option('-u, --user-id <uid>', 'User ID')
+		.option('-n, --username <username>', 'Username')
+		.option('-o, --organization-id <orgId>', 'Organization ID', parseInt)
+		.option('-d, --department-id <deptId>', 'Department ID', parseInt)
+		.option('-r, --role-id <roleId>', 'Role ID', parseInt)
+		.option('--dry-run', 'Show what would be done without making changes', false)
+		.action((...args) => execute(migrateCommands.linkUser, args));
+
+	migrateCmd
 		.command('validate')
 		.description('Validate a CSV file before importing')
 		.requiredOption('-f, --file <path>', 'Path to CSV file')
@@ -199,6 +210,231 @@ function MigrateCommands() {
 		} catch (err) {
 			winston.error(`[migrate/roles] Error: ${err.message}`);
 			console.error(chalk.red(`\n✗ Migration failed: ${err.message}`));
+			process.exit(1);
+		}
+	};
+
+	Commands.linkUser = async function (opts) {
+		const winston = require('winston');
+		const chalk = require('chalk');
+		const db = require('../database');
+		const user = require('../user');
+		const organizations = require('../organizations');
+
+		// Validate input
+		if (!opts.userId && !opts.username) {
+			console.error(chalk.red('✗ Error: Either --user-id or --username must be provided'));
+			process.exit(1);
+		}
+
+		if (!opts.organizationId) {
+			console.error(chalk.red('✗ Error: --organization-id is required'));
+			process.exit(1);
+		}
+
+		const startTime = Date.now();
+		winston.info('[link-user] Starting user linking process');
+
+		try {
+			await db.init();
+
+			// Step 1: User Validation
+			console.log(chalk.blue('\n=== Step 1: User Validation ==='));
+			let uid;
+
+			if (opts.userId) {
+				uid = opts.userId;
+				const userExists = await user.exists(uid);
+				if (!userExists) {
+					throw new Error(`User with ID ${uid} does not exist`);
+				}
+			} else {
+				uid = await db.sortedSetScore('username:uid', opts.username);
+				if (!uid) {
+					throw new Error(`User with username "${opts.username}" does not exist`);
+				}
+			}
+
+			const userData = await user.getUserFields(uid, ['username', 'email', 'fullname']);
+			console.log(chalk.green(`✓ User validated: ${userData.username} (uid: ${uid})`));
+
+			// Step 2: Organization Validation
+			console.log(chalk.blue('\n=== Step 2: Organization Validation ==='));
+			const orgId = opts.organizationId;
+			const orgExists = await organizations.exists(orgId);
+			if (!orgExists) {
+				throw new Error(`Organization ${orgId} does not exist`);
+			}
+
+			const org = await organizations.get(orgId);
+			console.log(chalk.green(`✓ Organization validated: ${org.name} (ID: ${orgId})`));
+
+			// Check if user is already member of organization
+			const isMember = await organizations.isMember(orgId, uid);
+			let membershipCreated = false;
+			let membershipId = null;
+
+			if (!isMember) {
+				if (opts.dryRun) {
+					console.log(chalk.yellow('  [DRY RUN] Would create membership in organization'));
+				} else {
+					// Create base membership
+					const membershipData = {
+						type: 'member',
+					};
+					const membership = await organizations.membership.join(orgId, uid, membershipData);
+					membershipId = membership.membershipId;
+					membershipCreated = true;
+					winston.info(`[link-user] Created membership ${membershipId} for user ${uid} in org ${orgId}`);
+					console.log(chalk.green(`✓ Organization membership: created (ID: ${membershipId})`));
+				}
+			} else {
+				// Get existing membership
+				const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+				if (memberships && memberships.length > 0) {
+					membershipId = memberships[0].membershipId;
+				}
+				console.log(chalk.yellow(`✓ Organization membership: already exists (ID: ${membershipId})`));
+			}
+
+			// Step 3: Department Linking Logic
+			if (opts.departmentId) {
+				console.log(chalk.blue('\n=== Step 3: Department Linking ==='));
+				const deptId = opts.departmentId;
+
+				// Validate department exists
+				const deptExists = await organizations.departmentExists(deptId);
+				if (!deptExists) {
+					throw new Error(`Department ${deptId} does not exist`);
+				}
+
+				const dept = await organizations.getDepartment(deptId);
+
+				// Verify department belongs to organization
+				if (String(dept.organizationId) !== String(orgId)) {
+					throw new Error(`Department ${deptId} does not belong to organization ${orgId}`);
+				}
+
+				console.log(chalk.green(`✓ Department validated: ${dept.name} (ID: ${deptId})`));
+
+				// Check if already linked to department
+				const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+				const hasThisDept = memberships.some(m => String(m.departmentId) === String(deptId));
+
+				if (!hasThisDept) {
+					if (opts.dryRun) {
+						console.log(chalk.yellow('  [DRY RUN] Would link user to department'));
+					} else {
+						// Update membership with department
+						if (membershipId) {
+							await organizations.membership.update(membershipId, { departmentId: deptId });
+							winston.info(`[link-user] Linked user ${uid} to department ${deptId}`);
+							console.log(chalk.green(`✓ Department link: created`));
+						} else if (!membershipCreated) {
+							// Need to create membership with department
+							const membershipData = {
+								type: 'member',
+								departmentId: deptId,
+							};
+							const membership = await organizations.membership.join(orgId, uid, membershipData);
+							membershipId = membership.membershipId;
+							winston.info(`[link-user] Created membership ${membershipId} with department ${deptId}`);
+							console.log(chalk.green(`✓ Department link: created (new membership ID: ${membershipId})`));
+						}
+					}
+				} else {
+					console.log(chalk.yellow(`✓ Department link: already exists`));
+				}
+			} else {
+				console.log(chalk.blue('\n=== Step 3: Department Linking ==='));
+				console.log(chalk.gray('  No department specified, skipping'));
+			}
+
+			// Step 4: Role Linking Logic
+			if (opts.roleId) {
+				console.log(chalk.blue('\n=== Step 4: Role Linking ==='));
+				const roleId = opts.roleId;
+
+				// Validate role exists
+				const roleExists = await organizations.roleExists(roleId);
+				if (!roleExists) {
+					throw new Error(`Role ${roleId} does not exist`);
+				}
+
+				const role = await organizations.getRole(roleId);
+
+				// Verify role belongs to organization
+				if (String(role.organizationId) !== String(orgId)) {
+					throw new Error(`Role ${roleId} does not belong to organization ${orgId}`);
+				}
+
+				// If role is department-scoped, verify department matches
+				if (role.departmentId && opts.departmentId && String(role.departmentId) !== String(opts.departmentId)) {
+					throw new Error(`Role ${roleId} belongs to department ${role.departmentId}, not ${opts.departmentId}`);
+				}
+
+				console.log(chalk.green(`✓ Role validated: ${role.name} (ID: ${roleId}, scope: ${role.scope})`));
+
+				// Check if already linked to role
+				const memberships = await organizations.getUserMembershipInOrganization(orgId, uid);
+				const hasThisRole = memberships.some(m => String(m.roleId) === String(roleId));
+
+				if (!hasThisRole) {
+					if (opts.dryRun) {
+						console.log(chalk.yellow('  [DRY RUN] Would link user to role'));
+					} else {
+						// Update membership with role
+						if (membershipId) {
+							await organizations.membership.update(membershipId, { roleId });
+							winston.info(`[link-user] Linked user ${uid} to role ${roleId}`);
+							console.log(chalk.green(`✓ Role link: created`));
+						} else if (!membershipCreated) {
+							// Need to create membership with role
+							const membershipData = {
+								type: 'member',
+								roleId,
+							};
+							if (opts.departmentId) {
+								membershipData.departmentId = opts.departmentId;
+							}
+							const membership = await organizations.membership.join(orgId, uid, membershipData);
+							membershipId = membership.membershipId;
+							winston.info(`[link-user] Created membership ${membershipId} with role ${roleId}`);
+							console.log(chalk.green(`✓ Role link: created (new membership ID: ${membershipId})`));
+						}
+					}
+				} else {
+					console.log(chalk.yellow(`✓ Role link: already exists`));
+				}
+			} else {
+				console.log(chalk.blue('\n=== Step 4: Role Linking ==='));
+				console.log(chalk.gray('  No role specified, skipping'));
+			}
+
+			// Step 5: Completion
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+			console.log(chalk.blue('\n=== Summary ==='));
+			console.log(chalk.green(`✓ User: ${userData.username} (${userData.email})`));
+			console.log(chalk.green(`✓ Organization: ${org.name}`));
+			if (opts.departmentId) {
+				const dept = await organizations.getDepartment(opts.departmentId);
+				console.log(chalk.green(`✓ Department: ${dept.name}`));
+			}
+			if (opts.roleId) {
+				const role = await organizations.getRole(opts.roleId);
+				console.log(chalk.green(`✓ Role: ${role.name}`));
+			}
+			console.log(chalk.green(`✓ Process completed successfully in ${elapsed}s`));
+
+			if (opts.dryRun) {
+				console.log(chalk.yellow('\n[DRY RUN] No changes were made to the database'));
+			}
+
+			process.exit(0);
+		} catch (err) {
+			winston.error(`[link-user] Error: ${err.message}`);
+			console.error(chalk.red(`\n✗ Error: ${err.message}`));
+			console.error(chalk.gray(err.stack));
 			process.exit(1);
 		}
 	};
