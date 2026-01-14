@@ -27,8 +27,8 @@ module.exports = {
 				return;
 			}
 
-			// Parse header
-			const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+			// Parse header - use CSV parser to handle quoted fields correctly
+			const header = parseCSVRow(lines[0]).map(h => h.trim().replace(/"/g, ''));
 			const rows = lines.slice(1);
 
 			progress.total = rows.length;
