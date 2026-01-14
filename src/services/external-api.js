@@ -49,7 +49,7 @@ async function callExternalApi(url, params = {}, config = {}) {
                 ...config.headers,
             },
             timeout: config.timeout || ExternalApiService.config.timeout,
-            httpsAgent: httpsAgent,
+            httpsAgent,
         });
 
         if (response.data && response.data.response) {
