@@ -1,4 +1,4 @@
-export const collections = {
+const collections = {
     OBJECTS: "objects",
     ORGANIZATIONS: "organizations",
     THREADBUILDERS: "threadbuilders",
@@ -11,3 +11,5 @@ export const collections = {
     RECOGNITION_ASSIGNMENTS: 'recognition_assignments',
     SUPERVISOR: "supervisor"
 };
+
+module.exports = { collections };

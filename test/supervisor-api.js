@@ -2,7 +2,6 @@
 
 const assert = require('assert');
 const request = require('../src/request');
-const db = require('./mocks/databasemock');
 const User = require('../src/user');
 const groups = require('../src/groups');
 const Organizations = require('../src/organizations');
@@ -464,7 +463,7 @@ describe('Supervisor API Endpoints', () => {
 
     describe('Week Rules Validation', () => {
         it('should validate that week starts on Monday', async () => {
-            const response = await request.get(`/api/v3/supervisor/dashboard/${testDeptId}`, {
+            await request.get(`/api/v3/supervisor/dashboard/${testDeptId}`, {
                 jar: managerJar,
                 qs: { weekStart: testWeekStart },
                 json: true,
