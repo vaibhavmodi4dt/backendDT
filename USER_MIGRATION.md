@@ -1,10 +1,42 @@
 # User CSV Migration
 
-This document describes the user migration script that reads `user.csv` and creates/updates users with organization and department memberships.
+This document describes the user migration functionality that reads `user.csv` and creates/updates users with organization and department memberships.
 
-## Overview
+## Migration Methods
 
-The migration script (`src/upgrades/4.7.0/migrate-users-from-csv.js`) processes the `user.csv` file and performs the following operations:
+There are two ways to migrate users:
+
+### 1. CLI Command (Recommended)
+
+Use the new `migrate` CLI command for on-demand data migrations:
+
+```bash
+# Validate CSV before importing
+./nodebb migrate validate -f user.csv -t users
+
+# Import users with organization memberships
+./nodebb migrate users -f user.csv
+
+# Import users, skipping existing users
+./nodebb migrate users -f user.csv --skip-existing
+
+# Dry run to validate without making changes
+./nodebb migrate users -f user.csv --dry-run
+```
+
+### 2. Automatic Upgrade Script
+
+The migration will also run automatically during the upgrade process:
+
+```bash
+./nodebb upgrade
+```
+
+The upgrade script (`src/upgrades/4.7.0/migrate-users-from-csv.js`) processes the `user.csv` file during schema upgrades.
+
+## Features
+
+The migration functionality performs the following operations:
 
 1. **User Creation/Update**:
    - Checks if users exist by username or email
@@ -36,6 +68,63 @@ The `user.csv` file should have the following columns:
 - **Role ID**: ID of the role to assign
 - **Member Type**: Type of membership (member/manager)
 - **Status**: Status of the membership (active/inactive)
+
+## CLI Command Usage
+
+### Validate CSV
+
+Before importing, validate your CSV file:
+
+```bash
+./nodebb migrate validate -f user.csv -t users
+```
+
+This command checks for:
+- Missing required fields (username, email)
+- Field count consistency across rows  
+- Data format issues
+- Displays validation statistics and sample data
+
+### Import Users
+
+Import users from a CSV file:
+
+```bash
+./nodebb migrate users -f user.csv
+```
+
+**Options:**
+- `-f, --file <path>`: Path to CSV file (required)
+- `--skip-existing`: Skip existing users instead of updating their memberships
+- `--dry-run`: Validate CSV without making any database changes
+
+**Examples:**
+
+```bash
+# Standard import (updates memberships for existing users)
+./nodebb migrate users -f user.csv
+
+# Skip existing users, only create new ones
+./nodebb migrate users -f user.csv --skip-existing
+
+# Test import without making changes
+./nodebb migrate users -f user.csv --dry-run
+
+# Import from a different file location
+./nodebb migrate users -f /path/to/custom-users.csv
+```
+
+## CLI Features
+
+The new CLI command provides:
+
+- **Flexible file paths**: Import from any CSV file location
+- **Dry-run mode**: Test migrations without database changes  
+- **Skip existing option**: Choose whether to update or skip existing users
+- **Detailed validation**: Pre-import validation with clear error messages
+- **Progress logging**: See exactly what's happening during migration
+- **Error reporting**: Clear error messages for troubleshooting
+- **Reusable for future migrations**: Standard pattern for other data types
 
 ## Running the Migration
 
