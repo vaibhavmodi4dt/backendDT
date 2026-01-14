@@ -3,8 +3,11 @@
 const axios = require('axios');
 const nconf = require('nconf');
 
-// Disable TLS verification for development (should be removed in production)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// ⚠️ WARNING: TLS certificate verification is disabled for development only
+// TODO: Remove this line in production and use proper certificate validation
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 /**
  * External API Service
@@ -22,6 +25,7 @@ ExternalApiService.config = {
     sdApiBaseUrl: process.env.SD_API_BASE_URL || 'https://beta.deepthought.education',
     happinessApiBaseUrl: process.env.HAPPINESS_API_BASE_URL || 'https://beta.deepthought.education',
     timeout: 10000, // 10 seconds default timeout
+    useHappinessMockData: process.env.USE_HAPPINESS_MOCK_DATA === 'true' || false, // Feature flag for mock data
 };
 
 /**
@@ -57,25 +61,25 @@ async function callExternalApi(url, params = {}, config = {}) {
  * @returns {Promise<Object|null>} Happiness scorecard data or null
  */
 ExternalApiService.fetchHappinessScorecard = async function (uid, weekStart) {
-    // ⚠️ TEMPORARY: Using hardcoded data until proper API is available
-    console.log('⚠️  Using hardcoded happiness data (API not available yet)');
+    // Check if we should use mock data (configurable via environment variable)
+    if (ExternalApiService.config.useHappinessMockData) {
+        console.log('⚠️  Using hardcoded happiness data (USE_HAPPINESS_MOCK_DATA=true)');
 
-    return {
-        totalHappiness: 85,  // Mock happiness score
-        currentWeek: {
-            start: weekStart,
-            end: new Date(new Date(weekStart).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        },
-        response: [
-            { question: 'Overall happiness', answer: '8.5' },
-            { question: 'Work satisfaction', answer: '8.0' },
-            { question: 'Team collaboration', answer: '9.0' },
-        ]
-    };
+        return {
+            totalHappiness: 85,  // Mock happiness score
+            currentWeek: {
+                start: weekStart,
+                end: new Date(new Date(weekStart).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            },
+            response: [
+                { question: 'Overall happiness', answer: '8.5' },
+                { question: 'Work satisfaction', answer: '8.0' },
+                { question: 'Team collaboration', answer: '9.0' },
+            ]
+        };
+    }
 
-    /* ========================
-     * COMMENTED OUT - Real API call (enable when API is ready)
-     * ========================
+    // Real API call
     try {
         // Convert weekStart to ISO format for API
         const weekStartDate = new Date(weekStart).toISOString();
@@ -107,7 +111,6 @@ ExternalApiService.fetchHappinessScorecard = async function (uid, weekStart) {
         console.error('Error fetching happiness scorecard:', error);
         return null;
     }
-    ======================== */
 };
 
 /**

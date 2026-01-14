@@ -499,8 +499,8 @@ user: {
 ## Recommendations for Production
 
 ### 1. Security
-- [ ] Remove `NODE_TLS_REJECT_UNAUTHORIZED = "0"`
-- [ ] Enable proper TLS certificate validation
+- [x] ~~Remove `NODE_TLS_REJECT_UNAUTHORIZED = "0"`~~ Now only enabled in development/test environments
+- [ ] Enable proper TLS certificate validation in production
 - [ ] Rotate API tokens regularly
 - [ ] Add rate limiting to supervisor endpoints
 
@@ -517,7 +517,7 @@ user: {
 - [ ] Alert on calculation failures
 
 ### 4. External API Integration
-- [ ] Enable real happiness API when available (currently using mock data)
+- [x] ~~Enable real happiness API when available~~ Now controlled by `USE_HAPPINESS_MOCK_DATA` environment variable
 - [ ] Add retry logic for failed external API calls
 - [ ] Implement circuit breaker pattern
 - [ ] Add health checks for external services

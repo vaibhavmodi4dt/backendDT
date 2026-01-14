@@ -16,14 +16,32 @@ describe('Supervisor API Endpoints', () => {
     let unauthorizedUid;
     let testOrgId;
     let testDeptId;
-    let testWeekStart = '2026-01-13'; // Monday
+    let testWeekStart; // Will be calculated dynamically
     let jar;
     let managerJar;
     let unauthorizedJar;
     let csrfToken;
 
+    /**
+     * Helper function to get the Monday of current week
+     * This ensures tests work regardless of when they're run
+     */
+    function getCurrentWeekMonday() {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        const monday = new Date(now.setDate(diff));
+        const year = monday.getFullYear();
+        const month = String(monday.getMonth() + 1).padStart(2, '0');
+        const date = String(monday.getDate()).padStart(2, '0');
+        return `${year}-${month}-${date}`;
+    }
+
     before(async function () {
         this.timeout(60000);
+
+        // Calculate test week start dynamically
+        testWeekStart = getCurrentWeekMonday();
 
         // Create test users
         testUid1 = await User.create({
