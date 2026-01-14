@@ -56,35 +56,45 @@ module.exports = {
 					// Parse CSV row - handle quoted fields
 					const fields = parseCSVRow(row);
 					
-					if (!fields[colMap.username] || !fields[colMap.email]) {
+					// Skip if username or email is missing
+					const username = fields[colMap.username] && fields[colMap.username].trim();
+					const email = fields[colMap.email] && fields[colMap.email].trim();
+					
+					if (!username || !email) {
 						winston.warn(`[2026/01/14] Skipping row - missing username or email`);
 						progress.incr(1);
 						continue;
 					}
 
 					const userData = {
-						username: fields[colMap.username].trim(),
-						userslug: fields[colMap.userslug] ? fields[colMap.userslug].trim() : undefined,
-						email: fields[colMap.email].trim(),
-						fullname: fields[colMap.fullname] ? fields[colMap.fullname].trim() : undefined,
+						username,
+						userslug: fields[colMap.userslug] && fields[colMap.userslug].trim(),
+						email,
+						fullname: fields[colMap.fullname] && fields[colMap.fullname].trim(),
 					};
 
-					const orgId = fields[colMap.orgId] ? parseInt(fields[colMap.orgId].trim(), 10) : null;
-					const deptId = fields[colMap.deptId] ? parseInt(fields[colMap.deptId].trim(), 10) : null;
-					const roleId = fields[colMap.roleId] ? parseInt(fields[colMap.roleId].trim(), 10) : null;
-					const memberType = fields[colMap.memberType] ? fields[colMap.memberType].trim() : 'member';
-					const status = fields[colMap.status] ? fields[colMap.status].trim() : 'active';
+					const orgIdStr = fields[colMap.orgId] && fields[colMap.orgId].trim();
+					const deptIdStr = fields[colMap.deptId] && fields[colMap.deptId].trim();
+					const roleIdStr = fields[colMap.roleId] && fields[colMap.roleId].trim();
+					
+					const orgId = orgIdStr ? parseInt(orgIdStr, 10) : null;
+					const deptId = deptIdStr ? parseInt(deptIdStr, 10) : null;
+					const roleId = roleIdStr ? parseInt(roleIdStr, 10) : null;
+					const memberType = (fields[colMap.memberType] && fields[colMap.memberType].trim()) || 'member';
+					const status = (fields[colMap.status] && fields[colMap.status].trim()) || 'active';
 
 					// Check if user exists by username or email
-					let uid = await getUserByUsernameOrEmail(userData.username, userData.email);
+					let uid = await getUserByUsernameOrEmail(username, email);
 
-					// If user exists, remove their existing memberships
+					// If user exists, remove them from the organization first (if they're already a member)
 					if (uid) {
-						winston.info(`[2026/01/14] User ${userData.username} exists (uid: ${uid}), removing old memberships`);
-						await removeUserMemberships(uid);
+						winston.info(`[2026/01/14] User ${username} exists (uid: ${uid})`);
+						if (orgId) {
+							await removeUserFromOrganization(uid, orgId);
+						}
 					} else {
 						// Create new user
-						winston.info(`[2026/01/14] Creating new user ${userData.username}`);
+						winston.info(`[2026/01/14] Creating new user ${username}`);
 						uid = await user.create(userData);
 					}
 
@@ -155,27 +165,18 @@ async function getUserByUsernameOrEmail(username, email) {
 	}
 }
 
-// Helper function to remove user's existing memberships
-async function removeUserMemberships(uid) {
+// Helper function to remove user's memberships from a specific organization
+async function removeUserFromOrganization(uid, orgId) {
 	try {
-		// Get all user's active memberships
-		const membershipIds = await db.getSetMembers(`uid:${uid}:memberships:active`);
-		
-		if (!membershipIds || membershipIds.length === 0) {
-			return;
-		}
-
-		// Remove each membership
-		for (const membershipId of membershipIds) {
-			try {
-				await organizations.membership.leave(membershipId);
-			} catch (err) {
-				// If membership doesn't exist or already removed, continue
-				winston.warn(`Could not remove membership ${membershipId}: ${err.message}`);
-			}
-		}
+		await organizations.membership.leaveByOrgAndUid(orgId, uid);
+		winston.info(`[2026/01/14] Removed uid ${uid} from organization ${orgId}`);
 	} catch (err) {
-		winston.error(`Error removing memberships for uid ${uid}: ${err.message}`);
+		// If user is not a member, that's fine - we'll add them
+		if (err.message.includes('not-a-member')) {
+			winston.info(`[2026/01/14] User ${uid} is not a member of org ${orgId}, will add`);
+		} else {
+			winston.error(`Error removing uid ${uid} from org ${orgId}: ${err.message}`);
+		}
 	}
 }
 
