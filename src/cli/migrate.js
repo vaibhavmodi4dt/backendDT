@@ -330,8 +330,8 @@ function MigrateCommands() {
 							await organizations.membership.update(membershipId, { departmentId: deptId });
 							winston.info(`[link-user] Linked user ${uid} to department ${deptId}`);
 							console.log(chalk.green(`✓ Department link: created`));
-						} else if (!membershipCreated) {
-							// Need to create membership with department
+						} else {
+							// Create membership with department (shouldn't happen, but handle it)
 							const membershipData = {
 								type: 'member',
 								departmentId: deptId,
@@ -388,8 +388,8 @@ function MigrateCommands() {
 							await organizations.membership.update(membershipId, { roleId });
 							winston.info(`[link-user] Linked user ${uid} to role ${roleId}`);
 							console.log(chalk.green(`✓ Role link: created`));
-						} else if (!membershipCreated) {
-							// Need to create membership with role
+						} else {
+							// Create membership with role (shouldn't happen, but handle it)
 							const membershipData = {
 								type: 'member',
 								roleId,
