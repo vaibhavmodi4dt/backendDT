@@ -45,7 +45,7 @@ module.exports = () => {
 	migrateCmd
 		.command('link-user')
 		.description('Link users to organization, department, and role with intelligent flow control')
-		.option('-f, --file <path>', 'Path to CSV file for bulk linking')
+		.option('-f, --file <path>', 'Path to CSV file for bulk user linking (enables CSV mode)')
 		.option('-u, --user-id <uid>', 'User ID (for individual linking)')
 		.option('-n, --username <username>', 'Username (for individual linking)')
 		.option('-o, --organization-id <orgId>', 'Organization ID', parseInt)
@@ -612,12 +612,9 @@ function MigrateCommands() {
 
 						if (!hasThisDept) {
 							if (opts.skipExisting) {
-								winston.info(`[link-user-bulk] Row ${rowNum}: Skipping department link for user ${uid}`);
-								skippedCount++;
-								continue;
-							}
-
-							if (opts.dryRun) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: Department already linked or skip requested for user ${uid}`);
+								// Don't continue - still process role if provided
+							} else if (opts.dryRun) {
 								winston.info(`[link-user-bulk] Row ${rowNum}: [DRY RUN] Would link user ${uid} to department ${deptId}`);
 							} else if (membershipId) {
 								await organizations.membership.update(membershipId, { departmentId: deptId });
@@ -644,12 +641,9 @@ function MigrateCommands() {
 
 						if (!hasThisRole) {
 							if (opts.skipExisting) {
-								winston.info(`[link-user-bulk] Row ${rowNum}: Skipping role assignment for user ${uid}`);
-								skippedCount++;
-								continue;
-							}
-
-							if (opts.dryRun) {
+								winston.info(`[link-user-bulk] Row ${rowNum}: Role already assigned or skip requested for user ${uid}`);
+								// Don't continue - still increment success count
+							} else if (opts.dryRun) {
 								winston.info(`[link-user-bulk] Row ${rowNum}: [DRY RUN] Would assign role ${roleId} to user ${uid}`);
 							} else if (membershipId) {
 								await organizations.membership.update(membershipId, { roleId });
