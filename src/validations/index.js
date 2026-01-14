@@ -8,7 +8,7 @@ const workspace = require('./workspace');
 const reports = require('./reports');
 const recognition = require('./recognition');
 const pitch = require('./pitch');
-const supervisor = require("./supervisor")
+const supervisor = require('./supervisor');
 
 
 module.exports = {
@@ -20,5 +20,5 @@ module.exports = {
 	recognition,
 	pitch,
 	reports,
-	supervisor
+	supervisor,
 };

@@ -1,7 +1,6 @@
 'use strict';
 
 const assert = require('assert');
-const db = require('./mocks/databasemock');
 const Supervisor = require('../src/supervisor');
 const Organizations = require('../src/organizations');
 const User = require('../src/user');

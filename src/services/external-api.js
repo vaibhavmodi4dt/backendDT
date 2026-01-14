@@ -1,18 +1,8 @@
 'use strict';
 
 const axios = require('axios');
+const https = require('https');
 const nconf = require('nconf');
-
-// ⚠️ WARNING: TLS certificate verification can be disabled for development only
-// Set DISABLE_TLS_VERIFICATION=true only in development/test environments
-// Production environments will NEVER disable TLS verification
-if (process.env.DISABLE_TLS_VERIFICATION === 'true') {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('FATAL: Cannot disable TLS verification in production! Remove DISABLE_TLS_VERIFICATION=true');
-    }
-    console.warn('⚠️  TLS certificate verification is DISABLED. This should only be used in development!');
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-}
 
 /**
  * External API Service
@@ -24,6 +14,20 @@ const ExternalApiService = module.exports;
 
 // Configuration
 const masterToken = nconf.get('masterToken');
+
+// ⚠️ WARNING: TLS certificate verification can be disabled for development only
+// Set DISABLE_TLS_VERIFICATION=true only in development/test environments
+// Production environments will NEVER disable TLS verification
+let httpsAgent;
+if (process.env.DISABLE_TLS_VERIFICATION === 'true') {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: Cannot disable TLS verification in production! Remove DISABLE_TLS_VERIFICATION=true');
+    }
+    console.warn('⚠️  TLS certificate verification is DISABLED for axios requests only. This should only be used in development!');
+    httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+    });
+}
 
 ExternalApiService.config = {
     ldiApiBaseUrl: process.env.LDI_API_BASE_URL || 'https://beta.deepthought.education',
@@ -45,6 +49,7 @@ async function callExternalApi(url, params = {}, config = {}) {
                 ...config.headers,
             },
             timeout: config.timeout || ExternalApiService.config.timeout,
+            httpsAgent,
         });
 
         if (response.data && response.data.response) {
