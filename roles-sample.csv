@@ -1,0 +1,36 @@
+Name,Description,Organization ID,Department ID,Scope
+Growth culture enabler,Enables and fosters organizational growth culture,1,,organization
+Financial Analyst,Analyzes financial data and provides insights,1,1,department
+Web Development,Develops and maintains web applications,1,2,department
+Behavioural Psychology Research,Conducts behavioral psychology research,1,3,department
+Business Growth Analyst,Analyzes business growth opportunities,1,4,department
+AI Content Creator,Creates AI-powered content,1,5,department
+Software Developer,Develops software applications,1,6,department
+Data Champion,Manages and analyzes organizational data,1,,organization
+Business Development,Develops new business opportunities,1,,organization
+Business Analyst,Analyzes business processes and requirements,1,,organization
+Telecalling,Manages customer communication via telephone,1,,organization
+Business Developer,Develops business relationships and opportunities,1,,organization
+Content,Creates and manages content,1,7,department
+Business Development Team,Team focused on business development,1,10,department
+Behaviour Research,Conducts behavioral research,1,3,department
+Technical Product Manager,Manages technical product development,1,1,department
+AI Product Manager,Manages AI product development,1,1,department
+Data Champion,Manages data operations for Escape Velocity,2,,organization
+Business Growth Analyst,Analyzes growth for Escape Velocity,2,15,department
+Junior Operations Manager,Manages junior operations,2,15,department
+Web Developer,Develops web applications for Escape Velocity,2,15,department
+Software Developer,Develops software for Escape Velocity,2,15,department
+Business Analyst,Analyzes business for Escape Velocity,2,15,department
+Rahul Somani,Special role for Rahul Somani,2,15,department
+Social Media Growth Hacker,Hacks social media growth for GoodBoy Kitchen,3,16,department
+Business Growth Analyst,Analyzes growth for Halcon Caravans,4,17,department
+Manufacturing Systems Design,Designs manufacturing systems,4,17,department
+Data Champion,Manages data for Kreative Organics,5,18,department
+Business Development,Develops business for NUEST,6,19,department
+Organizational Development Research,Conducts organizational development research,6,19,department
+Developer,Develops applications for PeerBrains,7,20,department
+Associative Business Analyst,Analyzes business associations for UBL,8,21,department
+Data Champion,Manages data for UBL,8,21,department
+Business Growth Analyst,Analyzes growth for UBL,8,21,department
+Business Analyst Fellow,Business analyst fellowship role for UBL,8,21,department

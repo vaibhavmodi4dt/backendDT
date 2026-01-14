@@ -274,6 +274,10 @@ resetCommand
 program
 	.addCommand(require('./user')());
 
+// migrate
+program
+	.addCommand(require('./migrate')());
+
 // upgrades
 program
 	.command('upgrade [scripts...]')

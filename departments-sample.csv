@@ -1,0 +1,22 @@
+Name,Description,Organization ID,Parent Department ID,Level
+HPF Lab,High Performance Finance Lab,1,,0
+CRM Lab,Customer Relationship Management Lab,1,,0
+LIS Lab,Learning Intelligence Systems Lab,1,,0
+EBR Lab,Evidence Based Research Lab,1,,0
+EdTeach UseCase Lab,Education Technology Use Case Lab,1,,0
+Delivery Lab Lead,Delivery and Operations Lab,1,,0
+HealthTech UseCase Lab,Health Technology Use Case Lab,1,,0
+K12 Intrapreneur Lab Lead,K-12 Education Lab,1,,0
+HealthTech Intrapreneur Lab Lead,Health Technology Intrapreneur Lab,1,,0
+Clinics Lab,Healthcare Clinics Lab,1,,0
+SEA Lab,South East Asia Lab,1,,0
+HealTech UseCase Lab,Healthcare Technology Use Case Lab,1,,0
+BGC Lab,Business Growth Catalyst Lab,1,,0
+AIT Lab,AI Technology Lab,1,,0
+Escape Velocity /CO,Escape Velocity Corporate Office,2,,0
+GoodBoy Kitchen /CO,GoodBoy Kitchen Corporate Office,3,,0
+Halcon Caravans /CO,Halcon Caravans Corporate Office,4,,0
+Kreative Organics /CO,Kreative Organics Corporate Office,5,,0
+NUEST /CO,NUEST Consulting Corporate Office,6,,0
+Peerbrains /CO,PeerBrains Corporate Office,7,,0
+UBL /CO,Unique Biotech Corporate Office,8,,0
