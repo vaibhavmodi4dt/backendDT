@@ -30,7 +30,8 @@ describe('Supervisor API Endpoints', () => {
         const now = new Date();
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-        const monday = new Date(now.setDate(diff));
+        const monday = new Date(now); // Create new Date object to avoid mutation
+        monday.setDate(diff);
         const year = monday.getFullYear();
         const month = String(monday.getMonth() + 1).padStart(2, '0');
         const date = String(monday.getDate()).padStart(2, '0');

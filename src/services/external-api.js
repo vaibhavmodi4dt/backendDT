@@ -3,9 +3,11 @@
 const axios = require('axios');
 const nconf = require('nconf');
 
-// ⚠️ WARNING: TLS certificate verification is disabled for development only
-// TODO: Remove this line in production and use proper certificate validation
-if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+// ⚠️ WARNING: TLS certificate verification can be disabled for development only
+// Set DISABLE_TLS_VERIFICATION=true only in development/test environments
+// TODO: Remove this setting in production and use proper certificate validation
+if (process.env.DISABLE_TLS_VERIFICATION === 'true') {
+    console.warn('⚠️  TLS certificate verification is DISABLED. This should only be used in development!');
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
 
@@ -25,7 +27,7 @@ ExternalApiService.config = {
     sdApiBaseUrl: process.env.SD_API_BASE_URL || 'https://beta.deepthought.education',
     happinessApiBaseUrl: process.env.HAPPINESS_API_BASE_URL || 'https://beta.deepthought.education',
     timeout: 10000, // 10 seconds default timeout
-    useHappinessMockData: process.env.USE_HAPPINESS_MOCK_DATA === 'true' || false, // Feature flag for mock data
+    useHappinessMockData: process.env.USE_HAPPINESS_MOCK_DATA === 'true', // Feature flag for mock data
 };
 
 /**
