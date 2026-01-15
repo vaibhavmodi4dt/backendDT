@@ -22,5 +22,6 @@ module.exports = {
 	workspace: require("./workspace"),
 	recognition: require('./recognition'),
 	pitch: require('./pitch'),
-	supervisor: require('./supervisor')
+	supervisor: require('./supervisor'),
+	notifications: require('./notifications'),
 };

@@ -21,5 +21,6 @@ Write.reports = require("./reports");
 Write.workspace = require("./workspace")
 Write.recognition = require("./recognition");
 Write.pitch = require("./pitch")
-Write.supervisor = require("./supervisor")
+Write.supervisor = require("./supervisor");
+Write.notifications = require('./notifications');
 
