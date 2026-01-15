@@ -6,23 +6,41 @@ const helpers = require('../helpers');
 const Notifications = module.exports;
 
 Notifications.generateAblyToken = async (req, res) => {
+	// Validate that uid matches authenticated user
+	const requestedUid = req.body.uid ? parseInt(req.body.uid, 10) : req.uid;
+	if (requestedUid !== req.uid) {
+		return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
+	}
+
 	const result = await api.notifications.generateAblyToken(req, {
-		uid: req.body.uid || req.uid,
+		uid: req.uid,
 	});
 	helpers.formatApiResponse(200, res, result);
 };
 
 Notifications.storePushSubscription = async (req, res) => {
+	// Validate that uid matches authenticated user
+	const requestedUid = req.body.uid ? parseInt(req.body.uid, 10) : req.uid;
+	if (requestedUid !== req.uid) {
+		return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
+	}
+
 	const result = await api.notifications.storePushSubscription(req, {
-		uid: req.body.uid || req.uid,
+		uid: req.uid,
 		subscription: req.body.subscription,
 	});
 	helpers.formatApiResponse(200, res, result);
 };
 
 Notifications.removePushSubscription = async (req, res) => {
+	// Validate that uid matches authenticated user
+	const requestedUid = req.body.uid ? parseInt(req.body.uid, 10) : req.uid;
+	if (requestedUid !== req.uid) {
+		return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
+	}
+
 	const result = await api.notifications.removePushSubscription(req, {
-		uid: req.body.uid || req.uid,
+		uid: req.uid,
 		endpoint: req.body.endpoint,
 	});
 	helpers.formatApiResponse(200, res, result);
@@ -42,8 +60,14 @@ Notifications.sendNotification = async (req, res) => {
 };
 
 Notifications.getNotificationHistory = async (req, res) => {
+	// Validate that uid matches authenticated user
+	const requestedUid = req.params.uid ? parseInt(req.params.uid, 10) : req.uid;
+	if (requestedUid !== req.uid) {
+		return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
+	}
+
 	const result = await api.notifications.getNotificationHistory(req, {
-		uid: req.params.uid || req.uid,
+		uid: requestedUid,
 		limit: parseInt(req.query.limit, 10) || 30,
 		offset: parseInt(req.query.offset, 10) || 0,
 	});

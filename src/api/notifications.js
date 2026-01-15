@@ -121,8 +121,12 @@ notificationsAPI.storePushSubscription = async function (caller, data) {
 		throw new Error('[[error:invalid-subscription-endpoint]]');
 	}
 
+	// Generate subscription ID first
+	const subscriptionId = utils.generateUUID();
+
 	const subscriptionData = {
 		uid: uid,
+		subscriptionId: subscriptionId,
 		endpoint: subscription.endpoint,
 		p256dh: subscription.keys.p256dh,
 		auth: subscription.keys.auth,
@@ -132,7 +136,6 @@ notificationsAPI.storePushSubscription = async function (caller, data) {
 	};
 
 	// Store in database using sorted set for user's subscriptions
-	const subscriptionId = utils.generateUUID();
 	const subscriptionKey = `pushSubscription:${subscriptionId}`;
 
 	await Promise.all([
@@ -222,7 +225,7 @@ notificationsAPI.sendNotification = async function (caller, data) {
 		throw new Error('[[error:invalid-notification-data]]');
 	}
 
-	// Sanitize inputs
+	// Sanitize inputs (validate but don't escape for push notifications)
 	const sanitizedTitle = validator.escape(title);
 	const sanitizedMessage = validator.escape(message);
 
@@ -292,11 +295,11 @@ notificationsAPI.sendNotification = async function (caller, data) {
 								await webpush.sendNotification(pushSubscription, payload);
 							} catch (pushErr) {
 								// Handle 410 Gone status (expired subscription)
-								if (pushErr.statusCode === 410) {
+								if (pushErr.statusCode === 410 && sub.subscriptionId) {
 									winston.verbose(`[notifications] Removing expired subscription for user ${uid}`);
-									await db.delete(`pushSubscription:${sub.id}`);
-									await db.sortedSetRemove(`uid:${uid}:pushSubscriptions`, sub.id);
-									await db.sortedSetRemove('pushSubscriptions:all', sub.id);
+									await db.delete(`pushSubscription:${sub.subscriptionId}`);
+									await db.sortedSetRemove(`uid:${uid}:pushSubscriptions`, sub.subscriptionId);
+									await db.sortedSetRemove('pushSubscriptions:all', sub.subscriptionId);
 								} else {
 									winston.error(`[notifications] Web push error for user ${uid}: ${pushErr.message}`);
 								}
