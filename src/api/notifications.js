@@ -8,7 +8,6 @@ const validator = require('validator');
 
 const db = require('../database');
 const user = require('../user');
-const privileges = require('../privileges');
 const meta = require('../meta');
 const utils = require('../utils');
 
