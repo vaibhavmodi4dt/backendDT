@@ -55,6 +55,7 @@ Reports.submitWeeklyPlan = Reports.weekly.submitPlan;
 Reports.getWeekly = Reports.weekly.getWeekly;
 Reports.getWeeklyRaw = Reports.weekly.getWeeklyRaw;
 Reports.updateWeekly = Reports.weekly.updateWeekly;
+Reports.startJobs = Reports.weekly.startScheduler;
 
 // Weekly report (6-day aggregation - raw data)
 Reports.getWeeklyReport = Reports.weekly.getReport;

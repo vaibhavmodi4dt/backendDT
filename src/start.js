@@ -17,7 +17,7 @@ start.start = async function () {
 		const googleAuthController = require('./controllers/google-auth');
 		await googleAuthController.init();
 		console.log('[Google OAuth] Strategy initialized');
-		
+
 		const meta = require('./meta');
 		await meta.configs.init();
 
@@ -43,6 +43,7 @@ start.start = async function () {
 			require('./plugins').startJobs();
 			require('./topics').scheduled.startJobs();
 			require('./activitypub').startJobs();
+			require("./reports").startJobs();
 			await db.delete('locks');
 		}
 
