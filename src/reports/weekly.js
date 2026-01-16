@@ -288,7 +288,7 @@ WeeklyReports.startScheduler = function () {
     winston.verbose('[reports:weekly] Starting scheduled jobs.');
 
     // Generate weekly reports every Sunday at 11:00 PM
-    new CronJob('0 23 * * 0', async () => {
+    new CronJob('0 11 * * 0', async () => {
         try {
             winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
             await WeeklyReports.generateAllWeeklyReports();
