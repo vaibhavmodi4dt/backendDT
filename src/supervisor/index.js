@@ -49,10 +49,17 @@ Supervisor.calculateDailyScore = async function (uid, weekDates) {
 Supervisor.calculateLdiScore = async function (uid, weekStart) {
     try {
         const ldiData = await helpers.fetchLdiPitch(uid, weekStart);
-        if (!ldiData) return { score: 0, pitched: false };
+        if (!ldiData?.response?.participants) {
+            return { score: 0, pitched: false };
+        }
 
-        const pitched = ldiData.pitched === true || (ldiData.pitch && ldiData.pitch.pitched === true);
-        return { score: pitched ? 10 : 0, pitched };
+        const participant = ldiData.response.participants.find(p => p.uid === uid);
+        const pitched = participant?.pitched === true;
+
+        return {
+            score: pitched ? 10 : 0,
+            pitched
+        };
     } catch (error) {
         console.error('Error calculating LDI score:', error);
         return { score: 0, pitched: false };
@@ -65,13 +72,19 @@ Supervisor.calculateLdiScore = async function (uid, weekStart) {
 Supervisor.calculateSdScore = async function (uid, weekStart) {
     try {
         const sdData = await helpers.fetchSdPitch(uid, weekStart);
-        if (!sdData) return { score: 0, pitched: false };
+        if (!Array.isArray(sdData?.response)) {
+            return { score: 0, eligible: false };
+        }
 
-        const pitched = sdData.pitched === true || (sdData.pitch && sdData.pitch.pitched === true);
-        return { score: pitched ? 6 : 0, pitched };
+        const eligible = sdData.response.some(u => u.uid === uid);
+
+        return {
+            score: eligible ? 6 : 0,
+            eligible
+        };
     } catch (error) {
         console.error('Error calculating SD score:', error);
-        return { score: 0, pitched: false };
+        return { score: 0, eligible: false };
     }
 };
 

@@ -13,13 +13,7 @@ const supervisor = module.exports;
 supervisor.getDashboard = async (req, data) => {
     const { deptId, weekStart } = data;
 
-    if (!req.uid) throw new Error('[[error:not-logged-in]]');
-    if (!deptId) throw new Error('[[error:invalid-department-id]]');
-    if (!weekStart) throw new Error('[[error:week-start-required]]');
-
-    const isManager = await Organizations.isDepartmentManager(deptId, req.uid);
-    if (!isManager) throw new Error('[[error:no-permission]]');
-
+    // All validations (auth, deptId, weekStart, permissions) are handled by middlewares
     const dashboard = await storage.getDepartmentDashboard(deptId, weekStart);
     if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
 
@@ -32,17 +26,7 @@ supervisor.getDashboard = async (req, data) => {
 supervisor.getReports = async (req, data) => {
     const { deptId, uid, type, weekStart } = data;
 
-    // Validation
-    if (!req.uid) throw new Error('[[error:not-logged-in]]');
-    if (!deptId) throw new Error('[[error:invalid-department-id]]');
-    if (!type) throw new Error('[[error:type-required]]');
-    if (!weekStart) throw new Error('[[error:week-start-required]]');
-    if (!['daily', 'weekly'].includes(type)) throw new Error('[[error:invalid-type]]');
-
-    // Check permission
-    const isManager = await Organizations.isDepartmentManager(deptId, req.uid);
-    if (!isManager) throw new Error('[[error:no-permission]]');
-
+    // All validations (auth, deptId, type, weekStart, permissions) are handled by middlewares
     const weekDates = helpers.getWeekDates(weekStart);
 
     // ============================================

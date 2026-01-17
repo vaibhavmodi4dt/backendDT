@@ -101,7 +101,7 @@ ExternalApiService.fetchHappinessScorecard = async function (uid, weekStart) {
         };
 
         const data = await callExternalApi(url, params);
-        
+
         if (data) {
             // Check if response is an array or single object
             const submissions = Array.isArray(data) ? data : [data];
@@ -157,8 +157,9 @@ ExternalApiService.fetchLdiPitch = async function (uid, year, week) {
  */
 ExternalApiService.fetchSdPitch = async function (uid, year, week) {
     try {
-        const url = `${ExternalApiService.config.sdApiBaseUrl}/api/v3/globals/sd-pitch/`;
+        const url = `${ExternalApiService.config.sdApiBaseUrl}/api/v3/globals/sd-pitch`;
         const params = {
+            search: "participants",
             week: week,
             year: year,
             _uid: uid,
