@@ -15,10 +15,6 @@ const reportsApi = module.exports;
  * POST /api/v3/reports/weekly/report/generate
  */
 reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
     // Determine week start
     const anchor = data.date ? new Date(data.date) : new Date();
     const weekStart = Reports.helpers.getWeekStartDate(anchor);
@@ -136,10 +132,6 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
  * GET /api/v3/reports/weekly/report/evaluation
  */
 reportsApi.getWeeklyReportEvaluation = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
     // Determine week start
     const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
 
@@ -160,17 +152,8 @@ reportsApi.getWeeklyReportEvaluation = async function (caller, data) {
  * PUT /api/v3/reports/weekly/report/evaluation
  */
 reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
     // Determine week start
     const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
-
-    // Validate editedReport exists
-    if (!data.editedReport) {
-        throw new Error('[[error:edited-report-required]]');
-    }
 
     // Check if evaluation exists
     const existing = await Reports.getReportEvaluation(caller.uid, weekStart);
@@ -196,10 +179,6 @@ reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
  * POST /api/v3/reports/weekly/report/submit
  */
 reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
-    if (!caller.uid) {
-        throw new Error('[[error:not-logged-in]]');
-    }
-
     // Determine week start
     const weekStart = data.weekStart || Reports.helpers.getCurrentWeekStart();
 
