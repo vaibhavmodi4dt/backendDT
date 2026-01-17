@@ -10,6 +10,7 @@ const Supervisor = module.exports;
 // Export helpers and storage
 Supervisor.helpers = helpers;
 Supervisor.storage = require('./storage');
+Supervisor.schedule = require("./scheduler");
 
 // ==========================================
 // SCORE CALCULATION FUNCTIONS
