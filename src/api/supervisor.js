@@ -87,12 +87,17 @@ supervisor.getReports = async (req, data) => {
                 picture: user.picture
             },
             weeklyReport: weeklyReport ? {
+
                 submitted: true,
                 submittedAt: weeklyReport.submittedAt || Date.now(),
-                planVsActual: weeklyReport.planVsActual || null,
-                bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
-                ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
-                externalExploration: weeklyReport.externalExploration || null,
+                planVsActual: weeklyReport.generatedReport.planVsActual || null,
+                bottlenecksAndInsights: weeklyReport.generatedReport.bottlenecksAndInsights || null,
+                ipToolsTemplates: weeklyReport.generatedReport.ipToolsTemplates || null,
+                externalExploration: weeklyReport.generatedReport.externalExploration || null,
+                summary: weeklyReport.summary || null,
+                highlights: weeklyReport.highlights || null,
+                escalations: weeklyReport.escalations || null,
+                suggestions: weeklyReport.suggestions || null
             } : {
                 submitted: false
             }
@@ -170,10 +175,14 @@ supervisor.getReports = async (req, data) => {
                 weeklyReport: weeklyReport ? {
                     submitted: true,
                     submittedAt: weeklyReport.submittedAt || Date.now(),
-                    planVsActual: weeklyReport.planVsActual || null,
-                    bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
-                    ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
-                    externalExploration: weeklyReport.externalExploration || null,
+                    planVsActual: weeklyReport.generatedReport.planVsActual || null,
+                    bottlenecksAndInsights: weeklyReport.generatedReport.bottlenecksAndInsights || null,
+                    ipToolsTemplates: weeklyReport.generatedReport.ipToolsTemplates || null,
+                    externalExploration: weeklyReport.generatedReport.externalExploration || null,
+                    summary: weeklyReport.summary || null,
+                    highlights: weeklyReport.highlights || null,
+                    escalations: weeklyReport.escalations || null,
+                    suggestions: weeklyReport.suggestions || null
                 } : {
                     submitted: false
                 }

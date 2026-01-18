@@ -215,10 +215,14 @@ Supervisor.getMemberWeeklyReport = async function (uid, weekStart) {
 
     return {
         weekStart,
-        planVsActual: report.planVsActual || null,
-        bottlenecksAndInsights: report.bottlenecksAndInsights || null,
-        ipToolsTemplates: report.ipToolsTemplates || null,
-        externalExploration: report.externalExploration || null,
+        planVsActual: report.generatedReport.planVsActual || null,
+        bottlenecksAndInsights: report.generatedReport.bottlenecksAndInsights || null,
+        ipToolsTemplates: report.generatedReport.ipToolsTemplates || null,
+        externalExploration: report.generatedReport.externalExploration || null,
+        summary: report.summary || null,
+        highlights: report.highlights || null,
+        escalations: report.escalations || null,
+        suggestions: report.suggestions || null
     };
 };
 
