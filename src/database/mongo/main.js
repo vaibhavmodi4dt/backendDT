@@ -38,9 +38,10 @@ module.exports = function (module) {
 		return item !== undefined && item !== null;
 	};
 
-	module.scan = async function (params) {
+	module.scan = async function (params, options = {}) {
 		const match = helpers.buildMatchQuery(params.match);
-		return await module.client.collection('objects').distinct(
+		const collectionName = (options && options.collection) || 'objects';
+		return await module.client.collection(collectionName).distinct(
 			'_key', { _key: { $regex: new RegExp(match) } }
 		);
 	};

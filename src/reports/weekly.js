@@ -288,12 +288,15 @@ WeeklyReports.startScheduler = function () {
     winston.verbose('[reports:weekly] Starting scheduled jobs.');
 
     // Generate weekly reports every Sunday at 11:00 PM
-    new CronJob('0 11 * * 0', async () => {
+    new CronJob('7 11 * * 0', async () => {
         try {
             winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
             await WeeklyReports.generateAllWeeklyReports();
         } catch (err) {
-            winston.error('[reports:weekly] ❌ Error in weekly generation:', err.stack);
+            winston.error('[reports:weekly] ❌ Failed', {
+                message: err?.message || err,
+                stack: err?.stack,
+            });
         }
     }, null, true);
 
@@ -307,14 +310,35 @@ WeeklyReports.startScheduler = function () {
 /**
  * Generate weekly reports for all active users
  * Called by cron job every Sunday at 11 PM
+ * @param {Object} options - Optional parameters for testing
+ * @param {string} options.weekStartStr - Override week start date (YYYY-MM-DD)
+ * @param {string} options.weekEndStr - Override week end date (YYYY-MM-DD)
  */
-WeeklyReports.generateAllWeeklyReports = async function () {
+WeeklyReports.generateAllWeeklyReports = async function (options = {}) {
     const startTime = utils.date.now();
     winston.info('[reports:weekly] 📊 Starting automated weekly report generation...');
 
     try {
+        // Calculate the current week (or use provided dates for testing)
+        let weekStartStr, weekEndStr;
+
+        if (options.weekStartStr && options.weekEndStr) {
+            // Testing mode: use provided dates
+            weekStartStr = options.weekStartStr;
+            weekEndStr = options.weekEndStr;
+            winston.info(`[reports:weekly] 🧪 Testing mode: ${weekStartStr} to ${weekEndStr}`);
+        } else {
+            // Production mode: calculate current week
+            const nowTimestamp = utils.date.now();
+            const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
+            weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
+            const weekDates = helpers.getWeekDates(weekStartStr);
+            weekEndStr = weekDates[weekDates.length - 1];
+            winston.info(`[reports:weekly] 📅 Production mode: ${weekStartStr} to ${weekEndStr}`);
+        }
+
         // Get all active users who submitted at least 1 report this week
-        const activeUsers = await WeeklyReports.getActiveUsers();
+        const activeUsers = await WeeklyReports.getActiveUsers(weekStartStr, weekEndStr);
 
         if (activeUsers.length === 0) {
             winston.info('[reports:weekly] ℹ️  No active users found. Nothing to generate.');
@@ -338,7 +362,7 @@ WeeklyReports.generateAllWeeklyReports = async function () {
 
             await Promise.all(batch.map(async (uid) => {
                 try {
-                    const result = await WeeklyReports.generateForUser(uid);
+                    const result = await WeeklyReports.generateForUser(uid, weekStartStr);
 
                     if (result.skipped) {
                         skipped++;
@@ -372,7 +396,7 @@ WeeklyReports.generateAllWeeklyReports = async function () {
             duration
         };
     } catch (error) {
-        winston.error('[reports:weekly] 💥 Critical error:', error.stack);
+        winston.error('[reports:weekly] 💥 Criticawl error:', error.stack);
         throw error;
     }
 };
@@ -383,12 +407,16 @@ WeeklyReports.generateAllWeeklyReports = async function () {
 
 /**
  * Generate weekly report for a single user
+ * @param {number} uid - User ID
+ * @param {string} weekStartStr - Optional week start date (YYYY-MM-DD). If not provided, uses current week.
  */
-WeeklyReports.generateForUser = async function (uid) {
-    // Use DateUtils to get current week start (Monday)
-    const nowTimestamp = utils.date.now();
-    const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
-    const weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
+WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
+    // Use provided week start or calculate current week start (Monday)
+    if (!weekStartStr) {
+        const nowTimestamp = utils.date.now();
+        const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
+        weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
+    }
     const weekDates = helpers.getWeekDates(weekStartStr);
 
     // Fetch daily reports
@@ -448,23 +476,27 @@ WeeklyReports.generateForUser = async function (uid) {
 /**
  * Get users who submitted at least 1 daily report this week
  */
-WeeklyReports.getActiveUsers = async function () {
-    const weekStart = helpers.getCurrentWeekStart();
-    const weekDates = helpers.getWeekDates(weekStart);
+WeeklyReports.getActiveUsers = async function (startDate, endDate) {
+    const weekDates = helpers.getDateRange(startDate, endDate);
     const activeUsers = new Set();
 
     for (const dateISO of weekDates) {
+        // Use * wildcard for the UID portion
         const pattern = `reports:daily:user:*:${dateISO}`;
-        const allKeys = await db.getKeys(pattern, reportsCollection);
+
+        // Pass collection as part of options object
+        const allKeys = await db.scan(
+            { match: pattern },
+            reportsCollection
+        );
 
         allKeys.forEach((key) => {
-            if (key.includes(dateISO)) {
-                const parts = key.split(':');
-                if (parts.length >= 5) {
-                    const uid = parseInt(parts[3], 10);
-                    if (!isNaN(uid) && uid > 0) {
-                        activeUsers.add(uid);
-                    }
+            const parts = key.split(':');
+            // parts should be: ['reports', 'daily', 'user', '<uid>', '<date>']
+            if (parts.length === 5) {
+                const uid = parseInt(parts[3], 10);
+                if (!isNaN(uid) && uid > 0) {
+                    activeUsers.add(uid);
                 }
             }
         });
@@ -479,17 +511,25 @@ WeeklyReports.getActiveUsers = async function () {
 
 /**
  * Manual trigger for testing
- * Usage: WeeklyReports.manualTrigger() or WeeklyReports.manualTrigger({ uid: 6339 })
+ *
+ * Usage examples:
+ * - Generate for current week: WeeklyReports.manualTrigger()
+ * - Generate for specific week: WeeklyReports.manualTrigger({ weekStartStr: '2026-01-05', weekEndStr: '2026-01-11' })
+ * - Generate for single user (current week): WeeklyReports.manualTrigger({ uid: 112 })
+ * - Generate for single user (specific week): WeeklyReports.manualTrigger({ uid: 112, weekStartStr: '2026-01-05' })
  */
 WeeklyReports.manualTrigger = async function (options = {}) {
     winston.info('[reports:weekly] 🔧 Manual trigger initiated', options);
 
     if (options.uid) {
         winston.info(`[reports:weekly] Generating for user ${options.uid}...`);
-        return await WeeklyReports.generateForUser(options.uid);
+        return await WeeklyReports.generateForUser(options.uid, options.weekStartStr);
     } else {
         winston.info('[reports:weekly] Generating for all users...');
-        return await WeeklyReports.generateAllWeeklyReports();
+        return await WeeklyReports.generateAllWeeklyReports({
+            weekStartStr: options.weekStartStr,
+            weekEndStr: options.weekEndStr
+        });
     }
 };
 

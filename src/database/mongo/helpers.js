@@ -51,19 +51,39 @@ helpers.valueToString = function (value) {
 };
 
 helpers.buildMatchQuery = function (match) {
-	let _match = match;
-	if (match.startsWith('*')) {
-		_match = _match.substring(1);
+	// Check if there are wildcards in the middle of the pattern
+	const trimmedMatch = match.replace(/^\*/, '').replace(/\*$/, '');
+	const hasMiddleWildcard = trimmedMatch.includes('*');
+
+	if (hasMiddleWildcard) {
+		// New logic: Handle wildcards anywhere in the pattern
+		const parts = match.split('*');
+		const escapedParts = parts.map(part => utils.escapeRegexChars(part));
+		let _match = escapedParts.join('.*');
+
+		if (!match.startsWith('*')) {
+			_match = `^${_match}`;
+		}
+		if (!match.endsWith('*')) {
+			_match += '$';
+		}
+		return _match;
+	} else {
+		// Original logic: Only wildcards at start/end
+		let _match = match;
+		if (match.startsWith('*')) {
+			_match = _match.substring(1);
+		}
+		if (match.endsWith('*')) {
+			_match = _match.substring(0, _match.length - 1);
+		}
+		_match = utils.escapeRegexChars(_match);
+		if (!match.startsWith('*')) {
+			_match = `^${_match}`;
+		}
+		if (!match.endsWith('*')) {
+			_match += '$';
+		}
+		return _match;
 	}
-	if (match.endsWith('*')) {
-		_match = _match.substring(0, _match.length - 1);
-	}
-	_match = utils.escapeRegexChars(_match);
-	if (!match.startsWith('*')) {
-		_match = `^${_match}`;
-	}
-	if (!match.endsWith('*')) {
-		_match += '$';
-	}
-	return _match;
 };

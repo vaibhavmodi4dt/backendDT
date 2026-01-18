@@ -158,6 +158,18 @@ helpers.getCurrentWeekStart = function () {
     return utils.date.format(mondayTs, utils.date.formats.DATE);
 };
 
+helpers.getDateRange = function (startDate, endDate) {
+    const dates = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        dates.push(utils.date.format(date.getTime(), utils.date.formats.DATE));
+    }
+
+    return dates;
+};
+
 /**
  * Generate weekly report key
  */
