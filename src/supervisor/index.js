@@ -219,10 +219,10 @@ Supervisor.getMemberWeeklyReport = async function (uid, weekStart) {
         bottlenecksAndInsights: report.generatedReport.bottlenecksAndInsights || null,
         ipToolsTemplates: report.generatedReport.ipToolsTemplates || null,
         externalExploration: report.generatedReport.externalExploration || null,
-        summary: report.summary || null,
-        highlights: report.highlights || null,
-        escalations: report.escalations || null,
-        suggestions: report.suggestions || null
+        summary: report.generatedReport.summary || null,
+        highlights: report.generatedReport.highlights || null,
+        escalations: report.generatedReport.escalations || null,
+        suggestions: report.generatedReport.suggestions || null
     };
 };
 

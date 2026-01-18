@@ -94,10 +94,10 @@ supervisor.getReports = async (req, data) => {
                 bottlenecksAndInsights: weeklyReport.generatedReport.bottlenecksAndInsights || null,
                 ipToolsTemplates: weeklyReport.generatedReport.ipToolsTemplates || null,
                 externalExploration: weeklyReport.generatedReport.externalExploration || null,
-                summary: weeklyReport.summary || null,
-                highlights: weeklyReport.highlights || null,
-                escalations: weeklyReport.escalations || null,
-                suggestions: weeklyReport.suggestions || null
+                summary: weeklyReport.generatedReport.summary || null,
+                highlights: weeklyReport.generatedReport.highlights || null,
+                escalations: weeklyReport.generatedReport.escalations || null,
+                suggestions: weeklyReport.generatedReport.suggestions || null
             } : {
                 submitted: false
             }
@@ -179,10 +179,10 @@ supervisor.getReports = async (req, data) => {
                     bottlenecksAndInsights: weeklyReport.generatedReport.bottlenecksAndInsights || null,
                     ipToolsTemplates: weeklyReport.generatedReport.ipToolsTemplates || null,
                     externalExploration: weeklyReport.generatedReport.externalExploration || null,
-                    summary: weeklyReport.summary || null,
-                    highlights: weeklyReport.highlights || null,
-                    escalations: weeklyReport.escalations || null,
-                    suggestions: weeklyReport.suggestions || null
+                    summary: weeklyReport.generatedReport.summary || null,
+                    highlights: weeklyReport.generatedReport.highlights || null,
+                    escalations: weeklyReport.generatedReport.escalations || null,
+                    suggestions: weeklyReport.generatedReport.suggestions || null
                 } : {
                     submitted: false
                 }
