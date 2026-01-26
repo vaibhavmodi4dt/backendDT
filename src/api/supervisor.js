@@ -15,6 +15,60 @@ async function ensureManager(req, deptId, weekStart) {
     if (!isManager) throw new Error('[[error:no-permission]]');
 }
 
+// Helper: Format user object
+function formatUserObject(user) {
+    return {
+        username: user.username,
+        fullname: user.fullname || user.username,
+        picture: user.picture
+    };
+}
+
+// Helper: Format daily report for a single date
+function formatDailyReport(report, date) {
+    if (!report) {
+        return {
+            date,
+            plan: [],
+            frameworks: [],
+            hasPlan: false,
+            hasReport: false
+        };
+    }
+
+    return {
+        date,
+        plan: report.plan || [],
+        frameworks: report.frameworks || [],
+        hasPlan: report.plan?.length > 0,
+        hasReport: !!(report.report || report.frameworks?.length > 0)
+    };
+}
+
+// Helper: Get daily reports for a user across week dates
+async function getDailyReportsForUser(uid, weekDates) {
+    return await Promise.all(
+        weekDates.map(async (date) => {
+            const report = await helpers.fetchDailyReport(uid, date);
+            return formatDailyReport(report, date);
+        })
+    );
+}
+
+// Helper: Format weekly report
+function formatWeeklyReport(weeklyReport) {
+    return weeklyReport ? {
+        submitted: true,
+        submittedAt: weeklyReport.submittedAt || Date.now(),
+        planVsActual: weeklyReport.planVsActual || null,
+        bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
+        ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
+        externalExploration: weeklyReport.externalExploration || null,
+    } : {
+        submitted: false
+    };
+}
+
 // ============================================
 // Dashboard (Summary + Scores)
 // ============================================
@@ -68,41 +122,14 @@ supervisor.getReports = async (req, data) => {
     if (uid) {
         const user = await User.getUserData(uid);
 
-        // Daily reports
         if (type === 'daily') {
-            const dailyReports = await Promise.all(
-                weekDates.map(async (date) => {
-                    const report = await helpers.fetchDailyReport(uid, date);
-
-                    if (!report) {
-                        return {
-                            date,
-                            plan: [],
-                            frameworks: [],
-                            hasPlan: false,
-                            hasReport: false
-                        };
-                    }
-
-                    return {
-                        date,
-                        plan: report.plan || [],
-                        frameworks: report.frameworks || [],
-                        hasPlan: report.plan?.length > 0,
-                        hasReport: !!(report.report || report.frameworks?.length > 0)
-                    };
-                })
-            );
+            const dailyReports = await getDailyReportsForUser(uid, weekDates);
 
             return {
                 uid,
                 weekStart,
                 type: 'daily',
-                user: {
-                    username: user.username,
-                    fullname: user.fullname || user.username,
-                    picture: user.picture
-                },
+                user: formatUserObject(user),
                 dailyReports
             };
         }
@@ -114,21 +141,8 @@ supervisor.getReports = async (req, data) => {
             uid,
             weekStart,
             type: 'weekly',
-            user: {
-                username: user.username,
-                fullname: user.fullname || user.username,
-                picture: user.picture
-            },
-            weeklyReport: weeklyReport ? {
-                submitted: true,
-                submittedAt: weeklyReport.submittedAt || Date.now(),
-                planVsActual: weeklyReport.planVsActual || null,
-                bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
-                ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
-                externalExploration: weeklyReport.externalExploration || null,
-            } : {
-                submitted: false
-            }
+            user: formatUserObject(user),
+            weeklyReport: formatWeeklyReport(weeklyReport)
         };
     }
 
@@ -137,43 +151,15 @@ supervisor.getReports = async (req, data) => {
     // ============================================
     const membersData = await Organizations.getDepartmentMembers(deptId);
 
-    // Daily reports for all members
     if (type === 'daily') {
         const members = await Promise.all(
             membersData.members.map(async (memberInfo) => {
                 const user = await User.getUserData(memberInfo.uid);
-
-                const dailyReports = await Promise.all(
-                    weekDates.map(async (date) => {
-                        const report = await helpers.fetchDailyReport(memberInfo.uid, date);
-
-                        if (!report) {
-                            return {
-                                date,
-                                plan: [],
-                                frameworks: [],
-                                hasPlan: false,
-                                hasReport: false
-                            };
-                        }
-
-                        return {
-                            date,
-                            plan: report.plan || [],
-                            frameworks: report.frameworks || [],
-                            hasPlan: report.plan?.length > 0,
-                            hasReport: !!(report.report || report.frameworks?.length > 0)
-                        };
-                    })
-                );
+                const dailyReports = await getDailyReportsForUser(memberInfo.uid, weekDates);
 
                 return {
                     uid: memberInfo.uid,
-                    user: {
-                        username: user.username,
-                        fullname: user.fullname || user.username,
-                        picture: user.picture
-                    },
+                    user: formatUserObject(user),
                     dailyReports
                 };
             })
@@ -195,21 +181,8 @@ supervisor.getReports = async (req, data) => {
 
             return {
                 uid: memberInfo.uid,
-                user: {
-                    username: user.username,
-                    fullname: user.fullname || user.username,
-                    picture: user.picture
-                },
-                weeklyReport: weeklyReport ? {
-                    submitted: true,
-                    submittedAt: weeklyReport.submittedAt || Date.now(),
-                    planVsActual: weeklyReport.planVsActual || null,
-                    bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
-                    ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
-                    externalExploration: weeklyReport.externalExploration || null,
-                } : {
-                    submitted: false
-                }
+                user: formatUserObject(user),
+                weeklyReport: formatWeeklyReport(weeklyReport)
             };
         })
     );
