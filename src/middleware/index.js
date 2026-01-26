@@ -68,6 +68,7 @@ require('./headers')(middleware);
 require('./expose')(middleware);
 middleware.assert = require('./assert');
 middleware.activitypub = require('./activitypub');
+Object.assign(middleware, require('./organizationContext'));
 
 middleware.stripLeadingSlashes = function stripLeadingSlashes(req, res, next) {
 	const target = req.originalUrl.replace(relative_path, '');
