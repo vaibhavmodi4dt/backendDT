@@ -85,5 +85,25 @@ module.exports = function () {
         controllers.write.supervisor.getReports
     );
 
+    /**
+     * PUT /api/v3/supervisor/dashboard/:deptId/member/:uid/rubric
+     * Update rubric score and feedback for a team member
+     * Requires: Department manager or organization manager privileges
+     */
+    setupApiRoute(
+        router,
+        'put',
+        '/dashboard/:deptId/member/:uid/rubric',
+        [
+            ...middlewares,
+            organizationMiddleware.departmentExists,
+            organizationMiddleware.isDepartmentManager,
+            validate.params(schemas.supervisor.updateMemberRubricParams),
+            validate.query(schemas.supervisor.updateMemberRubricQuery),
+            validate.body(schemas.supervisor.updateMemberRubricBody),
+        ],
+        controllers.write.supervisor.updateMemberRubric
+    );
+
     return router;
 };

@@ -43,3 +43,40 @@ Storage.saveTeamSummary = async function (deptId, weekStart, teamSummary) {
     const key = `supervisor:summary:${deptId}:${weekStart}`;
     await db.setObject(key, teamSummary, { collection: collections.SUPERVISOR });
 };
+
+/**
+ * Update member rubric in both dashboard and individual member documents
+ */
+Storage.updateMemberRubric = async function (deptId, uid, weekStart, rubricData) {
+    // 1. Fetch dashboard document
+    const dashboardKey = `supervisor:dashboard:${deptId}:${weekStart}`;
+    const dashboard = await db.getObject(dashboardKey, [], { collection: collections.SUPERVISOR });
+
+    if (!dashboard) {
+        throw new Error('[[error:dashboard-not-found]]');
+    }
+
+    // 2. Find member in members array
+    const memberIndex = dashboard.members.findIndex(m => m.uid === uid);
+    if (memberIndex === -1) {
+        throw new Error('[[error:member-not-found]]');
+    }
+
+    // 3. Update rubric in the member object
+    dashboard.members[memberIndex].rubric = rubricData;
+
+    // 4. Save updated dashboard back to database
+    await db.setObject(dashboardKey, dashboard, { collection: collections.SUPERVISOR });
+
+    // 5. Also update individual member document for consistency
+    const memberKey = `supervisor:member:${uid}:${weekStart}`;
+    const memberDoc = await db.getObject(memberKey, [], { collection: collections.SUPERVISOR });
+
+    if (memberDoc) {
+        // If member document exists, update it
+        memberDoc.rubric = rubricData;
+        await db.setObject(memberKey, memberDoc, { collection: collections.SUPERVISOR });
+    }
+
+    return rubricData;
+};
