@@ -23,7 +23,7 @@ const util = require('util');
 // Parse command line arguments
 const args = process.argv.slice(2);
 const options = {
-    input: 'nodebb.daily_activity.json',
+    input: 'migration/nodebb.daily_activity.json',
     dryRun: args.includes('--dry-run'),
     batchSize: 100,
     skipBackup: args.includes('--skip-backup'),
@@ -41,14 +41,11 @@ if (batchIndex >= 0 && args[batchIndex + 1]) {
     options.batchSize = parseInt(args[batchIndex + 1], 10);
 }
 
-// Initialize NodeBB modules after parsing arguments
-const db = require('../src/database');
-const User = require('../src/user');
-const helpers = require('../src/reports/helpers');
-const { collections } = require('../src/database/mongo/collections');
-const utils = require('../src/utils');
-
-const reportsCollection = { collection: collections.REPORTS };
+// NodeBB modules - will be passed from EnvironmentStarter
+let db;
+let User;
+let helpers;
+let reportsCollection;
 
 // Migration state
 const migrationState = {
@@ -73,8 +70,20 @@ const migrationState = {
 
 /**
  * Main migration function
+ * @param {Object} env - Environment object from EnvironmentStarter with { db, User, meta }
  */
-async function migrate() {
+async function migrate(env) {
+    // Extract modules from environment
+    if (env) {
+        db = env.db;
+        User = env.User;
+
+        // Safely require helper modules after environment is initialized
+        const EnvironmentStarter = require('../src/test-utils/environment-starter');
+        helpers = EnvironmentStarter.requireModule('../reports/helpers');
+        const { collections } = EnvironmentStarter.requireModule('../database/mongo/collections');
+        reportsCollection = { collection: collections.REPORTS };
+    }
     console.log('='.repeat(80));
     console.log('NodeBB Daily Reports Migration');
     console.log('='.repeat(80));
@@ -96,7 +105,7 @@ async function migrate() {
         console.log('🔄 Step 2: Building UID mapping...');
         const uniqueOldUids = extractUniqueUids(oldData);
         console.log(`   ✓ Found ${uniqueOldUids.length} unique UIDs`);
-        
+
         await buildUidMapping(uniqueOldUids);
         console.log(`   ✓ Mapped ${migrationState.uidMapping.size} UIDs`);
         console.log('');
@@ -111,7 +120,7 @@ async function migrate() {
         console.log('🔍 Step 4: Validating input data...');
         const validationReport = validateInputData(oldData);
         migrationState.validationResults = validationReport;
-        
+
         if (!validationReport.isValid) {
             console.error('   ✗ Validation failed:');
             validationReport.errors.forEach(err => console.error(`     - ${err}`));
@@ -179,11 +188,11 @@ async function migrate() {
     } catch (error) {
         console.error('\n❌ Migration failed:', error.message);
         console.error(error.stack);
-        
+
         // Save error report
         const errorReportPath = await saveErrorReport(error);
         console.error(`\n📄 Error report saved: ${errorReportPath}`);
-        
+
         process.exit(1);
     }
 }
@@ -193,7 +202,7 @@ async function migrate() {
  */
 async function loadInputData(filePath) {
     const fullPath = path.resolve(filePath);
-    
+
     if (!fs.existsSync(fullPath)) {
         throw new Error(`Input file not found: ${fullPath}`);
     }
@@ -213,7 +222,7 @@ async function loadInputData(filePath) {
  */
 function extractUniqueUids(oldData) {
     const uids = new Set();
-    
+
     oldData.forEach(record => {
         if (record.uid) {
             uids.add(record.uid);
@@ -229,11 +238,11 @@ function extractUniqueUids(oldData) {
  */
 async function buildUidMapping(oldUids) {
     console.log('   → Querying database for user mappings...');
-    
+
     // Load first few records to get email-to-oldUID mapping
     const inputData = await loadInputData(options.input);
     const emailToOldUid = new Map();
-    
+
     inputData.forEach(record => {
         if (record.email && record.uid) {
             emailToOldUid.set(record.email.toLowerCase(), record.uid);
@@ -254,7 +263,7 @@ async function buildUidMapping(oldUids) {
         // Query database to find user by email
         try {
             const newUid = await User.getUidByEmail(record.email);
-            
+
             if (!newUid) {
                 migrationState.warnings.push(`No user found in database for email: ${record.email} (old UID: ${oldUid})`);
                 continue;
@@ -276,7 +285,9 @@ function validateUidMapping(oldUids) {
     // Check for orphaned UIDs
     const unmappedUids = oldUids.filter(uid => !migrationState.uidMapping.has(uid));
     if (unmappedUids.length > 0) {
-        errors.push(`${unmappedUids.length} UIDs could not be mapped: ${unmappedUids.slice(0, 5).join(', ')}${unmappedUids.length > 5 ? '...' : ''}`);
+        console.warn(`⚠️  Warning: ${unmappedUids.length} UIDs could not be mapped and will be skipped: ${unmappedUids.join(', ')}`);
+        // Return the list of unmapped UIDs so they can be filtered out
+        return unmappedUids;
     }
 
     // Check for duplicate mappings
@@ -384,7 +395,7 @@ async function createBackup(oldData) {
  */
 async function transformAndMigrate(oldData) {
     const batches = [];
-    
+
     // Split into batches
     for (let i = 0; i < oldData.length; i += options.batchSize) {
         batches.push(oldData.slice(i, i + options.batchSize));
@@ -395,9 +406,9 @@ async function transformAndMigrate(oldData) {
     for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
         console.log(`   → Batch ${i + 1}/${batches.length} (${batch.length} records)...`);
-        
+
         await processBatch(batch);
-        
+
         // Progress indicator
         const progress = ((i + 1) / batches.length * 100).toFixed(1);
         console.log(`   → Progress: ${progress}%`);
@@ -450,7 +461,7 @@ async function migrateRecord(oldRecord) {
     // Save to database (unless dry-run)
     if (!options.dryRun) {
         await db.setObject(newKey, newRecord, reportsCollection);
-        
+
         // Create indexes
         await createIndexes(newUid, date, newKey, oldRecord);
     }
@@ -514,7 +525,7 @@ async function createIndexes(uid, date, key, record) {
  */
 function updateDetailedMapping(oldUid, newUid, date) {
     let mapping = migrationState.detailedMapping.find(m => m.oldUid === oldUid);
-    
+
     if (!mapping) {
         mapping = {
             oldUid,
@@ -534,10 +545,10 @@ function updateDetailedMapping(oldUid, newUid, date) {
  */
 async function verifyMigration(oldData) {
     console.log('   → Sampling records for verification...');
-    
+
     const sampleSize = Math.min(100, oldData.length);
     const sampleIndexes = [];
-    
+
     // Random sampling
     for (let i = 0; i < sampleSize; i++) {
         const randomIndex = Math.floor(Math.random() * oldData.length);
@@ -550,14 +561,14 @@ async function verifyMigration(oldData) {
     for (const index of sampleIndexes) {
         const oldRecord = oldData[index];
         const newUid = migrationState.uidMapping.get(oldRecord.uid);
-        
+
         if (!newUid) continue;
 
         const newKey = helpers.getDailyReportKey(newUid, oldRecord.date);
-        
+
         try {
             const dbRecord = await db.getObject(newKey, [], reportsCollection);
-            
+
             if (!dbRecord) {
                 sampleErrors.push(`Record not found in database: ${newKey}`);
                 continue;
@@ -582,7 +593,7 @@ async function verifyMigration(oldData) {
     }
 
     console.log(`   → Verified ${correctCount}/${sampleSize} sampled records`);
-    
+
     if (sampleErrors.length > 0) {
         console.warn(`   ⚠ Found ${sampleErrors.length} verification errors`);
         migrationState.warnings.push(...sampleErrors);
@@ -676,9 +687,21 @@ async function saveErrorReport(error) {
     return reportPath;
 }
 
-// Run migration
+// Run migration with EnvironmentStarter if called directly
 if (require.main === module) {
-    migrate().catch(error => {
+    console.warn('⚠️  Warning: Running migration directly!');
+    console.warn('⚠️  Recommended: use run-daily-reports-migration.js instead');
+    console.warn('');
+
+    const EnvironmentStarter = require('../src/test-utils/environment-starter');
+
+    EnvironmentStarter.run(migrate, {
+        name: 'Daily Reports Migration',
+        loadUser: true,
+        loadMeta: true,
+    }).then(() => {
+        process.exit(0);
+    }).catch(error => {
         console.error('Fatal error:', error);
         process.exit(1);
     });

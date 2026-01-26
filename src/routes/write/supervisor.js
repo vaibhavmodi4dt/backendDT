@@ -7,8 +7,44 @@ const controllers = require('../../controllers');
 const routeHelpers = require('../helpers');
 const validate = require('../../middleware/validate');
 const schemas = require('../../validations');
+const Organizations = require('../../organizations');
+const user = require('../../user');
 
 const { setupApiRoute } = routeHelpers;
+
+/**
+ * Custom middleware: Check if user is department manager (deptId from query)
+ */
+const isDepartmentManagerFromQuery = async (req, res, next) => {
+    const deptId = req.query.deptId;
+    const { uid } = req;
+
+    // Admins can do anything
+    const isAdmin = await user.isAdministrator(uid);
+    if (isAdmin) {
+        req.isAdmin = true;
+        return next();
+    }
+
+    // Check if user is a manager of this specific department
+    const isDeptManager = await Organizations.isDepartmentManager(deptId, uid);
+
+    if (!isDeptManager) {
+        return res.status(403).json({
+            status: {
+                code: 403,
+                message: 'Forbidden',
+            },
+            response: {
+                error: '[[error:no-privileges]]',
+                message: 'Only department managers can perform this action',
+            },
+        });
+    }
+
+    req.isDeptManager = true;
+    next();
+};
 
 module.exports = function () {
     const middlewares = [middleware.ensureLoggedIn];
@@ -44,6 +80,7 @@ module.exports = function () {
         [
             ...middlewares,
             validate.query(schemas.supervisor.getReportsQuery),
+            isDepartmentManagerFromQuery,
         ],
         controllers.write.supervisor.getReports
     );

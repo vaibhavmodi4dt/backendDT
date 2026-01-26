@@ -47,12 +47,11 @@ SupervisorScheduler.calculateWeeklyData = async function () {
 
         winston.info(`[supervisor] Found ${orgIds.length} active organizations.`);
 
-        // Get previous week's Monday
+        // Get current week's Monday (not previous week)
         const today = new Date();
         const currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
-        const previousWeekStart = helpers.getPreviousWeekStart(currentWeekStart);
 
-        winston.info(`[supervisor] Calculating for week: ${previousWeekStart}`);
+        winston.info(`[supervisor] Calculating for week: ${currentWeekStart}`);
 
         // Process each organization
         for (const orgId of orgIds) {
@@ -73,7 +72,7 @@ SupervisorScheduler.calculateWeeklyData = async function () {
                 // Process each department
                 for (const department of departmentsResult.departments) {
                     try {
-                        await SupervisorScheduler.processDepartment(department.deptId, previousWeekStart);
+                        await SupervisorScheduler.processDepartment(department.deptId, currentWeekStart);
                     } catch (err) {
                         winston.error(`[supervisor] Error processing ${department.deptId}:`, err);
                     }
