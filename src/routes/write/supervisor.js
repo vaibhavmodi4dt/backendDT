@@ -52,7 +52,7 @@ module.exports = function () {
     /**
      * GET /api/v3/supervisor/dashboard/:deptId
      * Get pre-calculated supervisor dashboard for a department
-     * Requires: Department manager or organization manager privileges
+     * Requires: Administrator or department manager privileges
      */
     setupApiRoute(
         router,
@@ -71,7 +71,7 @@ module.exports = function () {
     /**
      * GET /api/v3/supervisor/reports
      * Get daily or weekly reports for department or individual member
-     * Requires: Department manager or organization manager privileges
+     * Requires: Administrator or department manager privileges
      */
     setupApiRoute(
         router,
@@ -88,7 +88,7 @@ module.exports = function () {
     /**
      * PUT /api/v3/supervisor/dashboard/:deptId/member/:uid/rubric
      * Update rubric score and feedback for a team member
-     * Requires: Department manager or organization manager privileges
+     * Requires: Administrator or department manager privileges
      */
     setupApiRoute(
         router,
