@@ -617,7 +617,7 @@ describe('Supervisor API Endpoints', () => {
                     qs: { weekStart: testWeekStart },
                     json: true,
                     body: {
-                        score: 85,
+                        score: 8.5,
                         feedback: 'Good work this week'
                     },
                 });
@@ -634,7 +634,7 @@ describe('Supervisor API Endpoints', () => {
                     qs: { weekStart: testWeekStart },
                     json: true,
                     body: {
-                        score: 85,
+                        score: 8.5,
                         feedback: 'Good work this week'
                     },
                 });
@@ -650,7 +650,7 @@ describe('Supervisor API Endpoints', () => {
                     jar: managerJar,
                     json: true,
                     body: {
-                        score: 85,
+                        score: 8.5,
                         feedback: 'Good work this week'
                     },
                 });
@@ -683,7 +683,7 @@ describe('Supervisor API Endpoints', () => {
                     qs: { weekStart: testWeekStart },
                     json: true,
                     body: {
-                        score: 150, // Invalid: > 100
+                        score: 15, // Invalid: > 10
                         feedback: 'Good work this week'
                     },
                 });
@@ -699,7 +699,7 @@ describe('Supervisor API Endpoints', () => {
                 qs: { weekStart: testWeekStart },
                 json: true,
                 body: {
-                    score: 85,
+                    score: 8.5,
                     feedback: 'Great progress this week on the new features!'
                 },
             });
@@ -712,7 +712,7 @@ describe('Supervisor API Endpoints', () => {
             assert.strictEqual(response.data.uid, testUid1);
             assert.strictEqual(response.data.weekStart, testWeekStart);
             assert(response.data.rubric);
-            assert.strictEqual(response.data.rubric.score, 85);
+            assert.strictEqual(response.data.rubric.score, 8.5);
             assert.strictEqual(response.data.rubric.feedback, 'Great progress this week on the new features!');
             assert.strictEqual(response.data.rubric.updatedBy, managerUid);
             assert(response.data.rubric.updatedAt);
@@ -725,7 +725,7 @@ describe('Supervisor API Endpoints', () => {
                 qs: { weekStart: testWeekStart },
                 json: true,
                 body: {
-                    score: 70,
+                    score: 7,
                     feedback: 'Initial feedback'
                 },
             });
@@ -736,12 +736,12 @@ describe('Supervisor API Endpoints', () => {
                 qs: { weekStart: testWeekStart },
                 json: true,
                 body: {
-                    score: 90,
+                    score: 9,
                     feedback: 'Updated feedback - much better!'
                 },
             });
 
-            assert.strictEqual(response.data.rubric.score, 90);
+            assert.strictEqual(response.data.rubric.score, 9);
             assert.strictEqual(response.data.rubric.feedback, 'Updated feedback - much better!');
         });
 
@@ -752,7 +752,7 @@ describe('Supervisor API Endpoints', () => {
                 qs: { weekStart: testWeekStart },
                 json: true,
                 body: {
-                    score: 95,
+                    score: 9.5,
                     feedback: 'Excellent work!'
                 },
             });
@@ -767,7 +767,7 @@ describe('Supervisor API Endpoints', () => {
             const member = dashboard.members.find(m => m.uid === testUid1);
             assert(member);
             assert(member.rubric);
-            assert.strictEqual(member.rubric.score, 95);
+            assert.strictEqual(member.rubric.score, 9.5);
             assert.strictEqual(member.rubric.feedback, 'Excellent work!');
         });
 
@@ -778,7 +778,7 @@ describe('Supervisor API Endpoints', () => {
                     qs: { weekStart: testWeekStart },
                     json: true,
                     body: {
-                        score: 85,
+                        score: 8.5,
                         feedback: 'Good work'
                     },
                 });
