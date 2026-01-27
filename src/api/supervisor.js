@@ -11,6 +11,12 @@ async function ensureManager(req, deptId, weekStart) {
     if (!req.uid) throw new Error('[[error:not-logged-in]]');
     if (!deptId) throw new Error('[[error:invalid-department-id]]');
     if (!weekStart) throw new Error('[[error:week-start-required]]');
+    
+    // Honor middleware-set privilege flags (admins and org/department managers)
+    if (req.isAdmin || req.isOrgManager || req.isDeptManager) {
+        return;
+    }
+    
     const isManager = await Organizations.isDepartmentManager(deptId, req.uid);
     if (!isManager) throw new Error('[[error:no-permission]]');
 }
@@ -57,15 +63,27 @@ async function getDailyReportsForUser(uid, weekDates) {
 
 // Helper: Format weekly report
 function formatWeeklyReport(weeklyReport) {
-    return weeklyReport ? {
+    if (!weeklyReport) {
+        return {
+            submitted: false
+        };
+    }
+
+    const generated = weeklyReport.generatedReport || {};
+
+    return {
         submitted: true,
         submittedAt: weeklyReport.submittedAt || Date.now(),
-        planVsActual: weeklyReport.planVsActual || null,
-        bottlenecksAndInsights: weeklyReport.bottlenecksAndInsights || null,
-        ipToolsTemplates: weeklyReport.ipToolsTemplates || null,
-        externalExploration: weeklyReport.externalExploration || null,
-    } : {
-        submitted: false
+        // Prefer fields from generatedReport, but fall back to top-level properties for compatibility
+        planVsActual: generated.planVsActual ?? weeklyReport.planVsActual ?? null,
+        bottlenecksAndInsights: generated.bottlenecksAndInsights ?? weeklyReport.bottlenecksAndInsights ?? null,
+        ipToolsTemplates: generated.ipToolsTemplates ?? weeklyReport.ipToolsTemplates ?? null,
+        externalExploration: generated.externalExploration ?? weeklyReport.externalExploration ?? null,
+        // Previously dropped fields – restore them to the API response
+        summary: generated.summary ?? weeklyReport.summary ?? null,
+        highlights: generated.highlights ?? weeklyReport.highlights ?? null,
+        escalations: generated.escalations ?? weeklyReport.escalations ?? null,
+        suggestions: generated.suggestions ?? weeklyReport.suggestions ?? null,
     };
 }
 
@@ -75,12 +93,8 @@ function formatWeeklyReport(weeklyReport) {
 supervisor.getDashboard = async (req, data) => {
     const { deptId, weekStart, uid } = data;
 
-    if (!req.uid) throw new Error('[[error:not-logged-in]]');
-    if (!deptId) throw new Error('[[error:invalid-department-id]]');
-    if (!weekStart) throw new Error('[[error:week-start-required]]');
-
-    const isManager = await Organizations.isDepartmentManager(deptId, req.uid);
-    if (!isManager) throw new Error('[[error:no-permission]]');
+    // Check permission using shared logic
+    await ensureManager(req, deptId, weekStart);
 
     const dashboard = await storage.getDepartmentDashboard(deptId, weekStart);
     if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
@@ -207,11 +221,10 @@ supervisor.updateMemberRubric = async (req, data) => {
     // Check permission
     await ensureManager(req, deptId, weekStart);
 
-    // Check if dashboard exists
+    // Fetch dashboard once and validate member exists
     const dashboard = await storage.getDepartmentDashboard(deptId, weekStart);
     if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
 
-    // Check if member exists in dashboard
     const memberExists = dashboard.members.some(m => m.uid === uid);
     if (!memberExists) throw new Error('[[error:member-not-found]]');
 
@@ -223,8 +236,8 @@ supervisor.updateMemberRubric = async (req, data) => {
         updatedAt: Date.now(),
     };
 
-    // Update rubric in storage (updates both dashboard and member documents)
-    await storage.updateMemberRubric(deptId, uid, weekStart, rubric);
+    // Update rubric in storage, passing the already-fetched dashboard
+    await storage.updateMemberRubric(deptId, uid, weekStart, rubric, dashboard);
 
     return {
         success: true,

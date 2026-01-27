@@ -46,11 +46,16 @@ Storage.saveTeamSummary = async function (deptId, weekStart, teamSummary) {
 
 /**
  * Update member rubric in both dashboard and individual member documents
+ * @param {string} deptId - Department ID
+ * @param {string} uid - User ID
+ * @param {string} weekStart - Week start date
+ * @param {object} rubricData - Rubric data to update
+ * @param {object} [existingDashboard] - Optional pre-fetched dashboard to avoid duplicate fetch
  */
-Storage.updateMemberRubric = async function (deptId, uid, weekStart, rubricData) {
-    // 1. Fetch dashboard document
+Storage.updateMemberRubric = async function (deptId, uid, weekStart, rubricData, existingDashboard) {
+    // 1. Use existing dashboard or fetch if not provided
     const dashboardKey = `supervisor:dashboard:${deptId}:${weekStart}`;
-    const dashboard = await db.getObject(dashboardKey, [], { collection: collections.SUPERVISOR });
+    const dashboard = existingDashboard || await db.getObject(dashboardKey, [], { collection: collections.SUPERVISOR });
 
     if (!dashboard) {
         throw new Error('[[error:dashboard-not-found]]');
