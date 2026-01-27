@@ -24,4 +24,5 @@ module.exports = {
 	pitch: require('./pitch'),
 	supervisor: require('./supervisor'),
 	notifications: require('./notifications'),
+	hvt: require('./hvt'),
 };
