@@ -9,9 +9,9 @@ const { z } = require('zod');
  * matching the TypeScript interfaces from the frontend.
  */
 
-// Enums matching frontend types
-const problemStatusEnum = z.enum(['identified', 'under_analysis', 'ideation', 'closed']);
-const ideaStatusEnum = z.enum(['draft', 'submitted', 'approved', 'rejected', 'in_progress']);
+// Enums matching frontend types and state machines
+const problemStatusEnum = z.enum(['open', 'in_progress', 'resolved', 'archived']);
+const ideaStatusEnum = z.enum(['draft', 'pending_review', 'approved', 'rejected', 'scored']);
 const experimentStatusEnum = z.enum([
 	'seeded',
 	'probing',

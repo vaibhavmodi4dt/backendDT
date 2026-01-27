@@ -266,6 +266,7 @@ module.exports = function (module) {
 
 		await module.setObject(`hvt:experiment:${experimentId}`, experimentData, hvtCollection);
 		await module.sortedSetAdd(`hvt:experiments:org:${data.orgId}:sorted`, timestamp, experimentId);
+		await module.sortedSetAdd('hvt:experiments:all', timestamp, experimentId);
 		await module.setAdd(`hvt:experiments:idea:${data.ideaId}`, experimentId);
 		await module.setAdd(`hvt:experiments:status:${experimentData.status}`, experimentId);
 
@@ -324,6 +325,12 @@ module.exports = function (module) {
 			return experiments.filter(exp => exp && exp.orgId === orgId).length;
 		}
 		return await module.sortedSetCard(`hvt:experiments:org:${orgId}:sorted`);
+	};
+
+	module.getHVTExperimentsByModule = async function (moduleId) {
+		const allExperimentIds = await module.getSortedSetRange('hvt:experiments:all', 0, -1);
+		const experiments = await module.getHVTExperiments(allExperimentIds);
+		return experiments.filter(exp => exp && exp.moduleId === moduleId);
 	};
 
 	// ==================== RESULTS ====================
@@ -586,7 +593,7 @@ module.exports = function (module) {
 
 	// ==================== USER ROLES ====================
 
-	module.setHVTUserRole = async function (orgId, uid, role) {
+	module.setHVTUserRole = async function (uid, orgId, role) {
 		const roleKey = `hvt:role:${orgId}:${uid}`;
 		const timestamp = Date.now();
 
@@ -606,13 +613,93 @@ module.exports = function (module) {
 		return roleData;
 	};
 
-	module.getHVTUserRole = async function (orgId, uid) {
-		return await module.getObject(`hvt:role:${orgId}:${uid}`, [], hvtCollection);
+	module.getHVTUserRole = async function (uid, orgId) {
+		const roleData = await module.getObject(`hvt:role:${orgId}:${uid}`, [], hvtCollection);
+		return roleData ? roleData.role : null;
 	};
 
-	module.removeHVTUserRole = async function (orgId, uid) {
+	module.deleteHVTUserRole = async function (uid, orgId) {
 		await module.delete(`hvt:role:${orgId}:${uid}`, hvtCollection);
 		await module.setRemove(`hvt:roles:org:${orgId}`, uid);
 		await module.setRemove(`hvt:roles:user:${uid}`, orgId);
+	};
+
+	module.getHVTRolesByOrg = async function (orgId) {
+		const uids = await module.getSetMembers(`hvt:roles:org:${orgId}`);
+		if (!uids || !uids.length) {
+			return [];
+		}
+		
+		const roles = await Promise.all(
+			uids.map(async (uid) => {
+				const roleData = await module.getObject(`hvt:role:${orgId}:${uid}`, [], hvtCollection);
+				return roleData;
+			})
+		);
+		
+		return roles.filter(Boolean);
+	};
+
+	// ==================== EXISTENCE CHECKS ====================
+
+	module.hvtModuleExists = async function (moduleId) {
+		return await module.exists(`hvt:module:${moduleId}`, hvtCollection);
+	};
+
+	module.hvtProblemExists = async function (problemId) {
+		return await module.exists(`hvt:problem:${problemId}`, hvtCollection);
+	};
+
+	module.hvtIdeaExists = async function (ideaId) {
+		return await module.exists(`hvt:idea:${ideaId}`, hvtCollection);
+	};
+
+	module.hvtExperimentExists = async function (experimentId) {
+		return await module.exists(`hvt:experiment:${experimentId}`, hvtCollection);
+	};
+
+	module.hvtLearningExists = async function (learningId) {
+		return await module.exists(`hvt:learning:${learningId}`, hvtCollection);
+	};
+
+	module.hvtEscalationExists = async function (escalationId) {
+		return await module.exists(`hvt:escalation:${escalationId}`, hvtCollection);
+	};
+
+	module.hvtResultExists = async function (resultId) {
+		return await module.exists(`hvt:result:${resultId}`, hvtCollection);
+	};
+
+	module.hvtTicketExists = async function (ticketId) {
+		return await module.exists(`hvt:ticket:${ticketId}`, hvtCollection);
+	};
+
+	module.hvtUpdateExists = async function (updateId) {
+		return await module.exists(`hvt:update:${updateId}`, hvtCollection);
+	};
+
+	// ==================== COUNT METHODS (ALIASES) ====================
+
+	module.countHVTProblems = async function (orgId) {
+		return await module.sortedSetCard(`hvt:problems:org:${orgId}:sorted`);
+	};
+
+	module.countHVTIdeas = async function (orgId) {
+		// Count all ideas across all problems in org
+		const problems = await module.getHVTProblemsByOrg(orgId);
+		let total = 0;
+		for (const problem of problems) {
+			const count = await module.sortedSetCard(`hvt:ideas:problem:${problem.id}`);
+			total += count;
+		}
+		return total;
+	};
+
+	module.countHVTExperiments = async function (orgId) {
+		return await module.sortedSetCard(`hvt:experiments:org:${orgId}:sorted`);
+	};
+
+	module.countHVTLearnings = async function (orgId) {
+		return await module.sortedSetCard(`hvt:learnings:org:${orgId}:sorted`);
 	};
 };

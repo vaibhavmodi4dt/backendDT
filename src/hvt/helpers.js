@@ -293,13 +293,12 @@ Helpers.validateLearningData = function (data) {
 // ==================== ROLE HIERARCHY ====================
 
 Helpers.ROLE_HIERARCHY = {
-	business_owner: 4,
-	strategic_leader: 3,
-	supervisor: 2,
-	employee: 1,
+	admin: 3,
+	contributor: 2,
+	viewer: 1,
 };
 
-Helpers.hasHigherRole = function (userRole, requiredRole) {
+Helpers.hasMinimumRole = function (userRole, requiredRole) {
 	const userLevel = Helpers.ROLE_HIERARCHY[userRole] || 0;
 	const requiredLevel = Helpers.ROLE_HIERARCHY[requiredRole] || 0;
 	return userLevel >= requiredLevel;
