@@ -569,5 +569,223 @@ describe('Supervisor API Endpoints', () => {
                 assert.strictEqual(err.statusCode, 400);
             }
         });
+
+        it('should filter dashboard by uid when provided', async () => {
+            const response = await request.get(`/api/v3/supervisor/dashboard/${testDeptId}`, {
+                jar: managerJar,
+                qs: { 
+                    weekStart: testWeekStart,
+                    uid: testUid1 
+                },
+                json: true,
+            });
+
+            // Should return single member, not full dashboard
+            assert(response);
+            assert(response.department);
+            assert.strictEqual(response.department.id, testDeptId);
+            assert.strictEqual(response.weekStart, testWeekStart);
+            assert(response.member);
+            assert.strictEqual(response.member.uid, testUid1);
+            // Should NOT have members array or teamSummary
+            assert(!response.members);
+            assert(!response.teamSummary);
+        });
+
+        it('should return 400 when uid does not exist in dashboard', async () => {
+            try {
+                await request.get(`/api/v3/supervisor/dashboard/${testDeptId}`, {
+                    jar: managerJar,
+                    qs: { 
+                        weekStart: testWeekStart,
+                        uid: unauthorizedUid // User not in department
+                    },
+                    json: true,
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 400);
+            }
+        });
+    });
+
+    describe('PUT /api/v3/supervisor/dashboard/:deptId/member/:uid/rubric', () => {
+        it('should return 401 when not logged in', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                    jar: jar,
+                    qs: { weekStart: testWeekStart },
+                    json: true,
+                    body: {
+                        score: 85,
+                        feedback: 'Good work this week'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 401);
+            }
+        });
+
+        it('should return 403 when user is not a department manager', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                    jar: unauthorizedJar,
+                    qs: { weekStart: testWeekStart },
+                    json: true,
+                    body: {
+                        score: 85,
+                        feedback: 'Good work this week'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 403);
+            }
+        });
+
+        it('should return 400 when weekStart is missing', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                    jar: managerJar,
+                    json: true,
+                    body: {
+                        score: 85,
+                        feedback: 'Good work this week'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 400);
+            }
+        });
+
+        it('should return 400 when score is missing', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                    jar: managerJar,
+                    qs: { weekStart: testWeekStart },
+                    json: true,
+                    body: {
+                        feedback: 'Good work this week'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 400);
+            }
+        });
+
+        it('should return 400 when score is out of range', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                    jar: managerJar,
+                    qs: { weekStart: testWeekStart },
+                    json: true,
+                    body: {
+                        score: 150, // Invalid: > 100
+                        feedback: 'Good work this week'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 400);
+            }
+        });
+
+        it('should successfully update member rubric', async () => {
+            const response = await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                jar: managerJar,
+                qs: { weekStart: testWeekStart },
+                json: true,
+                body: {
+                    score: 85,
+                    feedback: 'Great progress this week on the new features!'
+                },
+            });
+
+            // Validate response
+            assert(response);
+            assert.strictEqual(response.success, true);
+            assert(response.data);
+            assert.strictEqual(response.data.deptId, testDeptId);
+            assert.strictEqual(response.data.uid, testUid1);
+            assert.strictEqual(response.data.weekStart, testWeekStart);
+            assert(response.data.rubric);
+            assert.strictEqual(response.data.rubric.score, 85);
+            assert.strictEqual(response.data.rubric.feedback, 'Great progress this week on the new features!');
+            assert.strictEqual(response.data.rubric.updatedBy, managerUid);
+            assert(response.data.rubric.updatedAt);
+        });
+
+        it('should allow updating rubric multiple times', async () => {
+            // First update
+            await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid2}/rubric`, {
+                jar: managerJar,
+                qs: { weekStart: testWeekStart },
+                json: true,
+                body: {
+                    score: 70,
+                    feedback: 'Initial feedback'
+                },
+            });
+
+            // Second update (should overwrite)
+            const response = await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid2}/rubric`, {
+                jar: managerJar,
+                qs: { weekStart: testWeekStart },
+                json: true,
+                body: {
+                    score: 90,
+                    feedback: 'Updated feedback - much better!'
+                },
+            });
+
+            assert.strictEqual(response.data.rubric.score, 90);
+            assert.strictEqual(response.data.rubric.feedback, 'Updated feedback - much better!');
+        });
+
+        it('should persist rubric in dashboard', async () => {
+            // Update rubric
+            await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${testUid1}/rubric`, {
+                jar: managerJar,
+                qs: { weekStart: testWeekStart },
+                json: true,
+                body: {
+                    score: 95,
+                    feedback: 'Excellent work!'
+                },
+            });
+
+            // Fetch dashboard and verify rubric is saved
+            const dashboard = await request.get(`/api/v3/supervisor/dashboard/${testDeptId}`, {
+                jar: managerJar,
+                qs: { weekStart: testWeekStart },
+                json: true,
+            });
+
+            const member = dashboard.members.find(m => m.uid === testUid1);
+            assert(member);
+            assert(member.rubric);
+            assert.strictEqual(member.rubric.score, 95);
+            assert.strictEqual(member.rubric.feedback, 'Excellent work!');
+        });
+
+        it('should return 400 when member does not exist in dashboard', async () => {
+            try {
+                await request.put(`/api/v3/supervisor/dashboard/${testDeptId}/member/${unauthorizedUid}/rubric`, {
+                    jar: managerJar,
+                    qs: { weekStart: testWeekStart },
+                    json: true,
+                    body: {
+                        score: 85,
+                        feedback: 'Good work'
+                    },
+                });
+                assert.fail('Should have thrown error');
+            } catch (err) {
+                assert.strictEqual(err.statusCode, 400);
+            }
+        });
     });
 });
