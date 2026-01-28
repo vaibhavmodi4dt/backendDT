@@ -34,9 +34,11 @@ Tickets.create = async function (ideaId, data, uid) {
 	const ticketData = {
 		ideaId,
 		createdBy: uid,
+		orgId: idea.orgId,
 		externalTicketId: data.externalTicketId,
 		ticketSystem: data.ticketSystem,
 		ticketUrl: data.ticketUrl || null,
+		orgId: idea.orgId, // Fix: Add orgId from idea for multi-tenant isolation
 	};
 
 	// Fire pre-create hook

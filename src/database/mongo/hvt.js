@@ -4,8 +4,6 @@ const { collections } = require('./collections');
 const hvtCache = require('../../hvt/cache');
 
 module.exports = function (module) {
-	const helpers = require('./helpers');
-
 	// Collection option for HVT
 	const hvtCollection = { collection: collections.HVT };
 
@@ -21,12 +19,21 @@ module.exports = function (module) {
 			name: data.name,
 			description: data.description || null,
 			color: data.color || '#6366F1',
+			orgId: data.orgId,
 			createdAt: new Date(timestamp).toISOString(),
 			updatedAt: new Date(timestamp).toISOString(),
+			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:module:${moduleId}`, moduleData, hvtCollection);
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
+		}
 		await module.sortedSetAdd('hvt:modules:sorted', timestamp, moduleId);
+		// Fix: Add org-scoped index for multi-tenant isolation
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
+		}
 
 		return moduleData;
 	};
@@ -54,6 +61,14 @@ module.exports = function (module) {
 		return await module.getHVTModules(moduleIds);
 	};
 
+	module.getHVTModulesByOrg = async function (orgId) {
+		const moduleIds = await module.getSortedSetRange(`hvt:modules:org:${orgId}:sorted`, 0, -1);
+		if (!moduleIds || !moduleIds.length) {
+			return [];
+		}
+		return await module.getHVTModules(moduleIds);
+	};
+
 	module.updateHVTModule = async function (moduleId, data) {
 		const updateData = {
 			...data,
@@ -64,8 +79,16 @@ module.exports = function (module) {
 	};
 
 	module.deleteHVTModule = async function (moduleId) {
+		const moduleToDelete = await module.getHVTModule(moduleId);
+		if (moduleToDelete && moduleToDelete.orgId) {
+			await module.sortedSetRemove(`hvt:modules:org:${moduleToDelete.orgId}:sorted`, moduleId);
+		}
 		await module.delete(`hvt:module:${moduleId}`, hvtCollection);
 		await module.sortedSetRemove('hvt:modules:sorted', moduleId);
+		// Fix: Clean up org-scoped index
+		if (moduleData && moduleData.orgId) {
+			await module.sortedSetRemove(`hvt:modules:org:${moduleData.orgId}:sorted`, moduleId);
+		}
 	};
 
 	// ==================== PROBLEMS ====================
@@ -524,7 +547,7 @@ module.exports = function (module) {
 		);
 	};
 
-	module.getHVTLearningsByOrg = async function (orgId, start, stop) {
+	module.getHVTLearningsByOrg = async function (orgId, start = 0, stop = -1) {
 		const learningIds = await module.getSortedSetRevRange(`hvt:learnings:org:${orgId}:sorted`, start, stop);
 		return await module.getHVTLearnings(learningIds);
 	};
@@ -709,19 +732,17 @@ module.exports = function (module) {
 		const ticketData = {
 			_key: `hvt:ticket:${ticketId}`,
 			id: String(ticketId),
-			experimentId: data.experimentId,
+			ideaId: data.ideaId,
 			createdBy: data.createdBy,
-			title: data.title,
-			description: data.description || null,
-			status: data.status || 'open',
-			priority: data.priority,
+			externalTicketId: data.externalTicketId,
+			ticketSystem: data.ticketSystem,
+			ticketUrl: data.ticketUrl || null,
 			createdAt: new Date(timestamp).toISOString(),
-			resolvedAt: data.resolvedAt || null,
 			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:ticket:${ticketId}`, ticketData, hvtCollection);
-		await module.sortedSetAdd(`hvt:tickets:experiment:${data.experimentId}`, timestamp, ticketId);
+		await module.sortedSetAdd(`hvt:tickets:idea:${data.ideaId}`, timestamp, ticketId);
 
 		return ticketData;
 	};
@@ -741,8 +762,14 @@ module.exports = function (module) {
 		);
 	};
 
-	module.getHVTTicketsByExperiment = async function (experimentId) {
-		const ticketIds = await module.getSortedSetRange(`hvt:tickets:experiment:${experimentId}`, 0, -1);
+	// Fix: Renamed to match domain logic - tickets belong to ideas
+	module.getHVTTicketsByIdea = async function (ideaId) {
+		const ticketIds = await module.getSortedSetRange(`hvt:tickets:idea:${ideaId}`, 0, -1);
+		return await module.getHVTTickets(ticketIds);
+	};
+
+	module.getHVTTicketsByIdea = async function (ideaId) {
+		const ticketIds = await module.getSortedSetRange(`hvt:tickets:idea:${ideaId}`, 0, -1);
 		return await module.getHVTTickets(ticketIds);
 	};
 
@@ -752,9 +779,9 @@ module.exports = function (module) {
 			return false;
 		}
 
-		if (ticket.experimentId) {
+		if (ticket.ideaId) {
 			await module.sortedSetRemove(
-				`hvt:tickets:experiment:${ticket.experimentId}`,
+				`hvt:tickets:idea:${ticket.ideaId}`,
 				ticketId
 			);
 		}

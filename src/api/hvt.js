@@ -27,10 +27,24 @@ hvtApi.getAllModules = async function (caller, data) {
 };
 
 hvtApi.updateModule = async function (caller, data) {
-	return await HVT.modules.update(data.moduleId, data.updates);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	const moduleToUpdate = await HVT.modules.get(data.moduleId);
+	if (!moduleToUpdate || moduleToUpdate.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:forbidden]]');
+	}
+	return await HVT.modules.update(data.moduleId, data.updates, caller.uid);
 };
 
 hvtApi.deleteModule = async function (caller, data) {
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	const moduleToDelete = await HVT.modules.get(data.moduleId);
+	if (!moduleToDelete || moduleToDelete.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:forbidden]]');
+	}
 	await HVT.modules.delete(data.moduleId);
 	return { success: true };
 };
@@ -50,8 +64,10 @@ hvtApi.createProblem = async function (caller, data) {
 	if (!caller.organisation?.orgId) {
 		throw new Error('[[error:organization-context-required]]');
 	}
+	// Fix: Correct parameter order - (orgId, data, uid)
 	return await HVT.problems.create(
-		{ ...data, orgId: caller.organisation.orgId },
+		caller.organisation.orgId,
+		data,
 		caller.uid
 	);
 };

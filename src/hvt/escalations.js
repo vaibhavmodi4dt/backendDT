@@ -34,11 +34,14 @@ Escalations.create = async function (experimentId, data, uid) {
 
 	const escalationData = {
 		experimentId,
+		orgId: experiment.orgId,
 		raisedBy: uid,
 		reason: data.reason,
 		severity: data.severity,
 		status: 'open',
 		assignedTo: data.assignedTo || null,
+		// Fix: Add orgId from experiment for multi-tenant isolation
+		orgId: experiment.orgId,
 	};
 
 	// Fire pre-create hook
