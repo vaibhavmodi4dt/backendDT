@@ -3,6 +3,7 @@
 const db = require('../database');
 const plugins = require('../plugins');
 const helpers = require('./helpers');
+const pagination = require('../pagination');
 
 const Problems = module.exports;
 
@@ -64,17 +65,23 @@ Problems.getByOrg = async function (orgId, options = {}) {
 		throw new Error('[[error:organization-required]]');
 	}
 
-	const { page, limit, start, stop } = helpers.getPaginationData(options.page, options.limit);
+	const page = parseInt(options.page, 10) || 1;
+	const limit = Math.min(parseInt(options.limit, 10) || 20, 100); // Max 100 per page
+
+	// Calculate pagination
+	const start = Math.max(0, (page - 1) * limit);
+	const stop = start + limit - 1;
 
 	const problems = await db.getHVTProblemsByOrg(orgId, start, stop);
 	const total = await db.getHVTProblemCount(orgId);
+	const pageCount = Math.ceil(total / limit);
+
+	// Create pagination object
+	const paginationData = pagination.create(page, pageCount, { page, limit });
 
 	return {
-		problems: helpers.sanitizeProblems(problems),
-		page,
-		limit,
-		total,
-		pages: Math.ceil(total / limit),
+		data: helpers.sanitizeProblems(problems),
+		pagination: paginationData,
 	};
 };
 
