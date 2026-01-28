@@ -34,6 +34,7 @@ Tickets.create = async function (ideaId, data, uid) {
 	const ticketData = {
 		ideaId,
 		createdBy: uid,
+		orgId: idea.orgId,
 		externalTicketId: data.externalTicketId,
 		ticketSystem: data.ticketSystem,
 		ticketUrl: data.ticketUrl || null,

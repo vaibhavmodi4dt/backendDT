@@ -58,8 +58,8 @@ Modules.get = async function (moduleId) {
 /**
  * Get all modules
  */
-Modules.getAll = async function () {
-	const modules = await db.getAllHVTModules();
+Modules.getAll = async function (orgId) {
+	const modules = await db.getHVTModulesByOrg(orgId);
 	return helpers.sanitizeModules(modules);
 };
 
@@ -135,8 +135,8 @@ Modules.exists = async function (moduleId) {
 /**
  * Seed default modules if none exist
  */
-Modules.seedDefaults = async function (uid) {
-	const existing = await db.getAllHVTModules();
+Modules.seedDefaults = async function (orgId, uid) {
+	const existing = await db.getHVTModulesByOrg(orgId);
 	
 	if (existing && existing.length > 0) {
 		return existing;
@@ -144,7 +144,7 @@ Modules.seedDefaults = async function (uid) {
 
 	const seeded = [];
 	for (const moduleData of DEFAULT_MODULES) {
-		const module = await Modules.create(moduleData);
+		const module = await Modules.create({ ...moduleData, orgId });
 		seeded.push(module);
 	}
 

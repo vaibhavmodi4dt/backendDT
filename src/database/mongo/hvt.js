@@ -4,8 +4,6 @@ const { collections } = require('./collections');
 const hvtCache = require('../../hvt/cache');
 
 module.exports = function (module) {
-	const helpers = require('./helpers');
-
 	// Collection option for HVT
 	const hvtCollection = { collection: collections.HVT };
 
@@ -23,9 +21,13 @@ module.exports = function (module) {
 			color: data.color || '#6366F1',
 			createdAt: new Date(timestamp).toISOString(),
 			updatedAt: new Date(timestamp).toISOString(),
+			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:module:${moduleId}`, moduleData, hvtCollection);
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
+		}
 		await module.sortedSetAdd('hvt:modules:sorted', timestamp, moduleId);
 
 		return moduleData;
@@ -48,6 +50,14 @@ module.exports = function (module) {
 
 	module.getAllHVTModules = async function () {
 		const moduleIds = await module.getSortedSetRange('hvt:modules:sorted', 0, -1);
+		if (!moduleIds || !moduleIds.length) {
+			return [];
+		}
+		return await module.getHVTModules(moduleIds);
+	};
+
+	module.getHVTModulesByOrg = async function (orgId) {
+		const moduleIds = await module.getSortedSetRange(`hvt:modules:org:${orgId}:sorted`, 0, -1);
 		if (!moduleIds || !moduleIds.length) {
 			return [];
 		}
@@ -524,7 +534,7 @@ module.exports = function (module) {
 		);
 	};
 
-	module.getHVTLearningsByOrg = async function (orgId, start, stop) {
+	module.getHVTLearningsByOrg = async function (orgId, start = 0, stop = -1) {
 		const learningIds = await module.getSortedSetRevRange(`hvt:learnings:org:${orgId}:sorted`, start, stop);
 		return await module.getHVTLearnings(learningIds);
 	};
@@ -709,19 +719,17 @@ module.exports = function (module) {
 		const ticketData = {
 			_key: `hvt:ticket:${ticketId}`,
 			id: String(ticketId),
-			experimentId: data.experimentId,
+			ideaId: data.ideaId,
 			createdBy: data.createdBy,
-			title: data.title,
-			description: data.description || null,
-			status: data.status || 'open',
-			priority: data.priority,
+			externalTicketId: data.externalTicketId,
+			ticketSystem: data.ticketSystem,
+			ticketUrl: data.ticketUrl || null,
 			createdAt: new Date(timestamp).toISOString(),
-			resolvedAt: data.resolvedAt || null,
 			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:ticket:${ticketId}`, ticketData, hvtCollection);
-		await module.sortedSetAdd(`hvt:tickets:experiment:${data.experimentId}`, timestamp, ticketId);
+		await module.sortedSetAdd(`hvt:tickets:idea:${data.ideaId}`, timestamp, ticketId);
 
 		return ticketData;
 	};
@@ -743,6 +751,11 @@ module.exports = function (module) {
 
 	module.getHVTTicketsByExperiment = async function (experimentId) {
 		const ticketIds = await module.getSortedSetRange(`hvt:tickets:experiment:${experimentId}`, 0, -1);
+		return await module.getHVTTickets(ticketIds);
+	};
+
+	module.getHVTTicketsByIdea = async function (ideaId) {
+		const ticketIds = await module.getSortedSetRange(`hvt:tickets:idea:${ideaId}`, 0, -1);
 		return await module.getHVTTickets(ticketIds);
 	};
 

@@ -29,7 +29,8 @@ Learnings.create = async function (experimentId, data, uid) {
 		moduleId: experiment.moduleId,
 		orgId: experiment.orgId,
 		createdBy: uid,
-		content: data.content,
+		title: data.content,
+		description: data.content,
 		tags: data.tags || [],
 		isArchived: false,
 	};
