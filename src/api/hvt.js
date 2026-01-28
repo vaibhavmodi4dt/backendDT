@@ -34,7 +34,7 @@ hvtApi.updateModule = async function (caller, data) {
 	if (!moduleToUpdate || moduleToUpdate.orgId !== caller.organisation.orgId) {
 		throw new Error('[[error:forbidden]]');
 	}
-	return await HVT.modules.update(data.moduleId, data.updates);
+	return await HVT.modules.update(data.moduleId, data.updates, caller.uid);
 };
 
 hvtApi.deleteModule = async function (caller, data) {

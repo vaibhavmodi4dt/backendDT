@@ -74,6 +74,10 @@ module.exports = function (module) {
 	};
 
 	module.deleteHVTModule = async function (moduleId) {
+		const moduleToDelete = await module.getHVTModule(moduleId);
+		if (moduleToDelete && moduleToDelete.orgId) {
+			await module.sortedSetRemove(`hvt:modules:org:${moduleToDelete.orgId}:sorted`, moduleId);
+		}
 		await module.delete(`hvt:module:${moduleId}`, hvtCollection);
 		await module.sortedSetRemove('hvt:modules:sorted', moduleId);
 	};
@@ -765,9 +769,9 @@ module.exports = function (module) {
 			return false;
 		}
 
-		if (ticket.experimentId) {
+		if (ticket.ideaId) {
 			await module.sortedSetRemove(
-				`hvt:tickets:experiment:${ticket.experimentId}`,
+				`hvt:tickets:idea:${ticket.ideaId}`,
 				ticketId
 			);
 		}
