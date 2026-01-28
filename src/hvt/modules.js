@@ -56,10 +56,13 @@ Modules.get = async function (moduleId) {
 };
 
 /**
- * Get all modules
+ * Get all modules (org-scoped)
  */
-Modules.getAll = async function () {
-	const modules = await db.getAllHVTModules();
+Modules.getAll = async function (orgId) {
+	if (!orgId) {
+		throw new Error('[[error:organization-required]]');
+	}
+	const modules = await db.getAllHVTModulesByOrg(orgId);
 	return helpers.sanitizeModules(modules);
 };
 
@@ -133,10 +136,14 @@ Modules.exists = async function (moduleId) {
 };
 
 /**
- * Seed default modules if none exist
+ * Seed default modules if none exist for an organization
  */
-Modules.seedDefaults = async function (uid) {
-	const existing = await db.getAllHVTModules();
+Modules.seedDefaults = async function (orgId, uid) {
+	if (!orgId) {
+		throw new Error('[[error:organization-required]]');
+	}
+
+	const existing = await db.getAllHVTModulesByOrg(orgId);
 	
 	if (existing && existing.length > 0) {
 		return existing;
@@ -144,12 +151,14 @@ Modules.seedDefaults = async function (uid) {
 
 	const seeded = [];
 	for (const moduleData of DEFAULT_MODULES) {
-		const module = await Modules.create(moduleData);
+		// Add orgId to each module
+		const module = await Modules.create({ ...moduleData, orgId });
 		seeded.push(module);
 	}
 
 	await plugins.hooks.fire('action:hvt.modules.seeded', { 
 		modules: seeded,
+		orgId,
 		uid,
 	});
 

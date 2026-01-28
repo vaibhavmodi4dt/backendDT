@@ -29,7 +29,10 @@ Learnings.create = async function (experimentId, data, uid) {
 		moduleId: experiment.moduleId,
 		orgId: experiment.orgId,
 		createdBy: uid,
-		content: data.content,
+		// Fix: Map content to DB fields (title & description)
+		title: data.title || data.content?.substring(0, 200) || 'Learning',
+		description: data.description || data.content,
+		content: data.content, // Keep for backward compatibility
 		tags: data.tags || [],
 		isArchived: false,
 	};

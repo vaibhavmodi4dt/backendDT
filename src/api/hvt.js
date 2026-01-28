@@ -27,10 +27,26 @@ hvtApi.getAllModules = async function (caller, data) {
 };
 
 hvtApi.updateModule = async function (caller, data) {
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	// Fix: Verify module belongs to caller's organization
+	const module = await HVT.modules.get(data.moduleId);
+	if (!module || module.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:no-privileges]]');
+	}
 	return await HVT.modules.update(data.moduleId, data.updates);
 };
 
 hvtApi.deleteModule = async function (caller, data) {
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	// Fix: Verify module belongs to caller's organization
+	const module = await HVT.modules.get(data.moduleId);
+	if (!module || module.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:no-privileges]]');
+	}
 	await HVT.modules.delete(data.moduleId);
 	return { success: true };
 };
@@ -50,8 +66,10 @@ hvtApi.createProblem = async function (caller, data) {
 	if (!caller.organisation?.orgId) {
 		throw new Error('[[error:organization-context-required]]');
 	}
+	// Fix: Correct parameter order - (orgId, data, uid)
 	return await HVT.problems.create(
-		{ ...data, orgId: caller.organisation.orgId },
+		caller.organisation.orgId,
+		data,
 		caller.uid
 	);
 };
