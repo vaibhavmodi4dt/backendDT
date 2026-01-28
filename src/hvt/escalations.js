@@ -34,6 +34,7 @@ Escalations.create = async function (experimentId, data, uid) {
 
 	const escalationData = {
 		experimentId,
+		orgId: experiment.orgId,
 		raisedBy: uid,
 		reason: data.reason,
 		severity: data.severity,

@@ -30,22 +30,20 @@ hvtApi.updateModule = async function (caller, data) {
 	if (!caller.organisation?.orgId) {
 		throw new Error('[[error:organization-context-required]]');
 	}
-	// Fix: Verify module belongs to caller's organization
-	const module = await HVT.modules.get(data.moduleId);
-	if (!module || module.orgId !== caller.organisation.orgId) {
-		throw new Error('[[error:no-privileges]]');
+	const moduleToUpdate = await HVT.modules.get(data.moduleId);
+	if (!moduleToUpdate || moduleToUpdate.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:forbidden]]');
 	}
-	return await HVT.modules.update(data.moduleId, data.updates);
+	return await HVT.modules.update(data.moduleId, data.updates, caller.uid);
 };
 
 hvtApi.deleteModule = async function (caller, data) {
 	if (!caller.organisation?.orgId) {
 		throw new Error('[[error:organization-context-required]]');
 	}
-	// Fix: Verify module belongs to caller's organization
-	const module = await HVT.modules.get(data.moduleId);
-	if (!module || module.orgId !== caller.organisation.orgId) {
-		throw new Error('[[error:no-privileges]]');
+	const moduleToDelete = await HVT.modules.get(data.moduleId);
+	if (!moduleToDelete || moduleToDelete.orgId !== caller.organisation.orgId) {
+		throw new Error('[[error:forbidden]]');
 	}
 	await HVT.modules.delete(data.moduleId);
 	return { success: true };

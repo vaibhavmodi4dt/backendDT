@@ -4,8 +4,6 @@ const { collections } = require('./collections');
 const hvtCache = require('../../hvt/cache');
 
 module.exports = function (module) {
-	const helpers = require('./helpers');
-
 	// Collection option for HVT
 	const hvtCollection = { collection: collections.HVT };
 
@@ -24,9 +22,13 @@ module.exports = function (module) {
 			orgId: data.orgId,
 			createdAt: new Date(timestamp).toISOString(),
 			updatedAt: new Date(timestamp).toISOString(),
+			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:module:${moduleId}`, moduleData, hvtCollection);
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
+		}
 		await module.sortedSetAdd('hvt:modules:sorted', timestamp, moduleId);
 		// Fix: Add org-scoped index for multi-tenant isolation
 		if (data.orgId) {
@@ -59,11 +61,7 @@ module.exports = function (module) {
 		return await module.getHVTModules(moduleIds);
 	};
 
-	// Fix: Add org-scoped module retrieval for multi-tenant isolation
-	module.getAllHVTModulesByOrg = async function (orgId) {
-		if (!orgId) {
-			return [];
-		}
+	module.getHVTModulesByOrg = async function (orgId) {
 		const moduleIds = await module.getSortedSetRange(`hvt:modules:org:${orgId}:sorted`, 0, -1);
 		if (!moduleIds || !moduleIds.length) {
 			return [];
@@ -81,7 +79,10 @@ module.exports = function (module) {
 	};
 
 	module.deleteHVTModule = async function (moduleId) {
-		const moduleData = await module.getHVTModule(moduleId);
+		const moduleToDelete = await module.getHVTModule(moduleId);
+		if (moduleToDelete && moduleToDelete.orgId) {
+			await module.sortedSetRemove(`hvt:modules:org:${moduleToDelete.orgId}:sorted`, moduleId);
+		}
 		await module.delete(`hvt:module:${moduleId}`, hvtCollection);
 		await module.sortedSetRemove('hvt:modules:sorted', moduleId);
 		// Fix: Clean up org-scoped index
@@ -731,20 +732,16 @@ module.exports = function (module) {
 		const ticketData = {
 			_key: `hvt:ticket:${ticketId}`,
 			id: String(ticketId),
-			// Fix: Use ideaId instead of experimentId to match domain logic
 			ideaId: data.ideaId,
 			createdBy: data.createdBy,
 			externalTicketId: data.externalTicketId,
 			ticketSystem: data.ticketSystem,
 			ticketUrl: data.ticketUrl || null,
-			status: data.status || 'open',
 			createdAt: new Date(timestamp).toISOString(),
-			resolvedAt: data.resolvedAt || null,
 			orgId: data.orgId,
 		};
 
 		await module.setObject(`hvt:ticket:${ticketId}`, ticketData, hvtCollection);
-		// Fix: Index by ideaId instead of experimentId
 		await module.sortedSetAdd(`hvt:tickets:idea:${data.ideaId}`, timestamp, ticketId);
 
 		return ticketData;
@@ -771,13 +768,17 @@ module.exports = function (module) {
 		return await module.getHVTTickets(ticketIds);
 	};
 
+	module.getHVTTicketsByIdea = async function (ideaId) {
+		const ticketIds = await module.getSortedSetRange(`hvt:tickets:idea:${ideaId}`, 0, -1);
+		return await module.getHVTTickets(ticketIds);
+	};
+
 	module.deleteHVTTicket = async function (ticketId) {
 		const ticket = await module.getHVTTicket(ticketId);
 		if (!ticket) {
 			return false;
 		}
 
-		// Fix: Clean up ideaId index instead of experimentId
 		if (ticket.ideaId) {
 			await module.sortedSetRemove(
 				`hvt:tickets:idea:${ticket.ideaId}`,

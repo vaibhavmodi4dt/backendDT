@@ -48,6 +48,7 @@ const createProblemSchema = z.object({
 	moduleId: z.string().min(1),
 	title: z.string().min(1).max(200),
 	description: z.string().min(1),
+	severity: severityEnum,
 	impact: z.string().optional(),
 	affectedUsers: z.string().optional(),
 });
@@ -92,8 +93,9 @@ const updateIdeaStatusSchema = z.object({
 // Experiment schemas
 const createExperimentSchema = z.object({
 	ideaId: z.string().min(1),
-	hypothesis: z.string().min(1),
-	successCriteria: z.string().min(1),
+	title: z.string().min(1).max(200),
+	hypothesis: z.string().min(1).optional(),
+	successCriteria: z.string().min(1).optional(),
 	startDate: z.number().int().positive().optional(),
 	endDate: z.number().int().positive().optional(),
 });
