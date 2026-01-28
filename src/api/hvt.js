@@ -64,6 +64,7 @@ hvtApi.createProblem = async function (caller, data) {
 	if (!caller.organisation?.orgId) {
 		throw new Error('[[error:organization-context-required]]');
 	}
+	// Fix: Correct parameter order - (orgId, data, uid)
 	return await HVT.problems.create(
 		caller.organisation.orgId,
 		data,

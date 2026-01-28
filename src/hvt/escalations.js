@@ -40,6 +40,8 @@ Escalations.create = async function (experimentId, data, uid) {
 		severity: data.severity,
 		status: 'open',
 		assignedTo: data.assignedTo || null,
+		// Fix: Add orgId from experiment for multi-tenant isolation
+		orgId: experiment.orgId,
 	};
 
 	// Fire pre-create hook

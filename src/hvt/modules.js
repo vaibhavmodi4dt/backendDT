@@ -56,7 +56,7 @@ Modules.get = async function (moduleId) {
 };
 
 /**
- * Get all modules
+ * Get all modules (org-scoped)
  */
 Modules.getAll = async function (orgId) {
 	const modules = await db.getHVTModulesByOrg(orgId);
@@ -133,7 +133,7 @@ Modules.exists = async function (moduleId) {
 };
 
 /**
- * Seed default modules if none exist
+ * Seed default modules if none exist for an organization
  */
 Modules.seedDefaults = async function (orgId, uid) {
 	const existing = await db.getHVTModulesByOrg(orgId);
@@ -150,6 +150,7 @@ Modules.seedDefaults = async function (orgId, uid) {
 
 	await plugins.hooks.fire('action:hvt.modules.seeded', { 
 		modules: seeded,
+		orgId,
 		uid,
 	});
 

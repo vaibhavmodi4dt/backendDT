@@ -19,6 +19,7 @@ module.exports = function (module) {
 			name: data.name,
 			description: data.description || null,
 			color: data.color || '#6366F1',
+			orgId: data.orgId,
 			createdAt: new Date(timestamp).toISOString(),
 			updatedAt: new Date(timestamp).toISOString(),
 			orgId: data.orgId,
@@ -29,6 +30,10 @@ module.exports = function (module) {
 			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
 		}
 		await module.sortedSetAdd('hvt:modules:sorted', timestamp, moduleId);
+		// Fix: Add org-scoped index for multi-tenant isolation
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:modules:org:${data.orgId}:sorted`, timestamp, moduleId);
+		}
 
 		return moduleData;
 	};
@@ -80,6 +85,10 @@ module.exports = function (module) {
 		}
 		await module.delete(`hvt:module:${moduleId}`, hvtCollection);
 		await module.sortedSetRemove('hvt:modules:sorted', moduleId);
+		// Fix: Clean up org-scoped index
+		if (moduleData && moduleData.orgId) {
+			await module.sortedSetRemove(`hvt:modules:org:${moduleData.orgId}:sorted`, moduleId);
+		}
 	};
 
 	// ==================== PROBLEMS ====================
@@ -753,8 +762,9 @@ module.exports = function (module) {
 		);
 	};
 
-	module.getHVTTicketsByExperiment = async function (experimentId) {
-		const ticketIds = await module.getSortedSetRange(`hvt:tickets:experiment:${experimentId}`, 0, -1);
+	// Fix: Renamed to match domain logic - tickets belong to ideas
+	module.getHVTTicketsByIdea = async function (ideaId) {
+		const ticketIds = await module.getSortedSetRange(`hvt:tickets:idea:${ideaId}`, 0, -1);
 		return await module.getHVTTickets(ticketIds);
 	};
 
