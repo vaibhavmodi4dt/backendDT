@@ -1,6 +1,7 @@
 'use strict';
 
 const { collections } = require('./collections');
+const hvtCache = require('../../hvt/cache');
 
 module.exports = function (module) {
 	const helpers = require('./helpers');
@@ -99,7 +100,18 @@ module.exports = function (module) {
 	};
 
 	module.getHVTProblem = async function (problemId) {
-		return await module.getObject(`hvt:problem:${problemId}`, [], hvtCollection);
+		// Performance: Check cache first
+		const cacheKey = hvtCache.getProblemKey(problemId);
+		const cached = hvtCache.get(cacheKey);
+		if (cached) {
+			return cached;
+		}
+
+		const problem = await module.getObject(`hvt:problem:${problemId}`, [], hvtCollection);
+		if (problem) {
+			hvtCache.set(cacheKey, problem);
+		}
+		return problem;
 	};
 
 	module.getHVTProblems = async function (problemIds) {
@@ -137,6 +149,8 @@ module.exports = function (module) {
 		}
 
 		await module.setObject(`hvt:problem:${problemId}`, updateData, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateProblem(problemId);
 		return await module.getHVTProblem(problemId);
 	};
 
@@ -146,6 +160,8 @@ module.exports = function (module) {
 			await module.sortedSetRemove(`hvt:problems:org:${problem.orgId}:sorted`, problemId);
 			await module.setRemove(`hvt:problems:module:${problem.moduleId}`, problemId);
 			await module.setRemove(`hvt:problems:status:${problem.status}`, problemId);
+			// Performance: Invalidate cache
+			hvtCache.invalidateProblem(problemId);
 		}
 		await module.delete(`hvt:problem:${problemId}`, hvtCollection);
 	};
@@ -186,12 +202,27 @@ module.exports = function (module) {
 		await module.setObject(`hvt:idea:${ideaId}`, ideaData, hvtCollection);
 		await module.sortedSetAdd(`hvt:ideas:problem:${data.problemId}`, timestamp, ideaId);
 		await module.setAdd(`hvt:ideas:status:${ideaData.status}`, ideaId);
+		// Performance: Add org-scoped idea counter
+		await module.incrObjectField(`hvt:metrics:org:${data.orgId}`, 'ideaCount', hvtCollection);
+		// Performance: Invalidate org metrics cache
+		hvtCache.invalidateOrgMetrics(data.orgId);
 
 		return ideaData;
 	};
 
 	module.getHVTIdea = async function (ideaId) {
-		return await module.getObject(`hvt:idea:${ideaId}`, [], hvtCollection);
+		// Performance: Check cache first
+		const cacheKey = hvtCache.getIdeaKey(ideaId);
+		const cached = hvtCache.get(cacheKey);
+		if (cached) {
+			return cached;
+		}
+
+		const idea = await module.getObject(`hvt:idea:${ideaId}`, [], hvtCollection);
+		if (idea) {
+			hvtCache.set(cacheKey, idea);
+		}
+		return idea;
 	};
 
 	module.getHVTIdeas = async function (ideaIds) {
@@ -224,11 +255,30 @@ module.exports = function (module) {
 		}
 
 		await module.setObject(`hvt:idea:${ideaId}`, updateData, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateIdea(ideaId);
 		return await module.getHVTIdea(ideaId);
 	};
 
 	module.getHVTIdeaCount = async function (orgId, problemId) {
 		return await module.sortedSetCard(`hvt:ideas:problem:${problemId}`);
+	};
+
+	module.deleteHVTIdea = async function (ideaId) {
+		const idea = await module.getHVTIdea(ideaId);
+		if (idea) {
+			await module.sortedSetRemove(`hvt:ideas:problem:${idea.problemId}`, ideaId);
+			await module.setRemove(`hvt:ideas:status:${idea.status}`, ideaId);
+			// Performance: Decrement org idea counter
+			if (idea.orgId) {
+				await module.incrObjectField(`hvt:metrics:org:${idea.orgId}`, 'ideaCount', -1, hvtCollection);
+				// Performance: Invalidate org metrics cache
+				hvtCache.invalidateOrgMetrics(idea.orgId);
+			}
+			// Performance: Invalidate cache
+			hvtCache.invalidateIdea(ideaId);
+		}
+		await module.delete(`hvt:idea:${ideaId}`, hvtCollection);
 	};
 
 	// ==================== EXPERIMENTS ====================
@@ -269,12 +319,29 @@ module.exports = function (module) {
 		await module.sortedSetAdd('hvt:experiments:all', timestamp, experimentId);
 		await module.setAdd(`hvt:experiments:idea:${data.ideaId}`, experimentId);
 		await module.setAdd(`hvt:experiments:status:${experimentData.status}`, experimentId);
+		// Performance: Add org-scoped status index
+		await module.sortedSetAdd(`hvt:experiments:org:${data.orgId}:status:${experimentData.status}`, timestamp, experimentId);
+		// Performance: Add org-scoped module index
+		if (data.moduleId) {
+			await module.sortedSetAdd(`hvt:experiments:org:${data.orgId}:module:${data.moduleId}`, timestamp, experimentId);
+		}
 
 		return experimentData;
 	};
 
 	module.getHVTExperiment = async function (experimentId) {
-		return await module.getObject(`hvt:experiment:${experimentId}`, [], hvtCollection);
+		// Performance: Check cache first
+		const cacheKey = hvtCache.getExperimentKey(experimentId);
+		const cached = hvtCache.get(cacheKey);
+		if (cached) {
+			return cached;
+		}
+
+		const experiment = await module.getObject(`hvt:experiment:${experimentId}`, [], hvtCollection);
+		if (experiment) {
+			hvtCache.set(cacheKey, experiment);
+		}
+		return experiment;
 	};
 
 	module.getHVTExperiments = async function (experimentIds) {
@@ -294,11 +361,9 @@ module.exports = function (module) {
 	};
 
 	module.getHVTExperimentsByStatus = async function (status, orgId, start, stop) {
-		const allIds = await module.getSetMembers(`hvt:experiments:status:${status}`);
-		// Filter by org
-		const experiments = await module.getHVTExperiments(allIds);
-		const filtered = experiments.filter(exp => exp && exp.orgId === orgId);
-		return filtered.slice(start, stop + 1);
+		// Performance: Use org-scoped status index for efficient querying
+		const experimentIds = await module.getSortedSetRevRange(`hvt:experiments:org:${orgId}:status:${status}`, start || 0, stop || -1);
+		return await module.getHVTExperiments(experimentIds);
 	};
 
 	module.updateHVTExperiment = async function (experimentId, data) {
@@ -312,22 +377,35 @@ module.exports = function (module) {
 		if (data.status && data.status !== current.status) {
 			await module.setRemove(`hvt:experiments:status:${current.status}`, experimentId);
 			await module.setAdd(`hvt:experiments:status:${data.status}`, experimentId);
+			// Performance: Update org-scoped status index
+			if (current.orgId) {
+				await module.sortedSetRemove(`hvt:experiments:org:${current.orgId}:status:${current.status}`, experimentId);
+				const timestamp = Date.now();
+				await module.sortedSetAdd(`hvt:experiments:org:${current.orgId}:status:${data.status}`, timestamp, experimentId);
+			}
 		}
 
 		await module.setObject(`hvt:experiment:${experimentId}`, updateData, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateExperiment(experimentId);
 		return await module.getHVTExperiment(experimentId);
 	};
 
 	module.getHVTExperimentCount = async function (orgId, status) {
 		if (status) {
-			const allIds = await module.getSetMembers(`hvt:experiments:status:${status}`);
-			const experiments = await module.getHVTExperiments(allIds);
-			return experiments.filter(exp => exp && exp.orgId === orgId).length;
+			// Performance: Use org-scoped status index for efficient count
+			return await module.sortedSetCard(`hvt:experiments:org:${orgId}:status:${status}`);
 		}
 		return await module.sortedSetCard(`hvt:experiments:org:${orgId}:sorted`);
 	};
 
-	module.getHVTExperimentsByModule = async function (moduleId) {
+	module.getHVTExperimentsByModule = async function (moduleId, orgId) {
+		if (orgId) {
+			// Performance: Use org-scoped module index for efficient querying
+			const experimentIds = await module.getSortedSetRevRange(`hvt:experiments:org:${orgId}:module:${moduleId}`, 0, -1);
+			return await module.getHVTExperiments(experimentIds);
+		}
+		// Fallback: Load from global set (for backward compatibility)
 		const allExperimentIds = await module.getSortedSetRange('hvt:experiments:all', 0, -1);
 		const experiments = await module.getHVTExperiments(allExperimentIds);
 		return experiments.filter(exp => exp && exp.moduleId === moduleId);
@@ -352,6 +430,8 @@ module.exports = function (module) {
 
 		await module.setObject(`hvt:result:${resultId}`, resultData, hvtCollection);
 		await module.sortedSetAdd(`hvt:results:experiment:${data.experimentId}`, timestamp, resultId);
+		// Performance: Increment result counter in experiment metadata
+		await module.incrObjectField(`hvt:experiment:${data.experimentId}`, 'resultCount', hvtCollection);
 
 		return resultData;
 	};
@@ -403,14 +483,34 @@ module.exports = function (module) {
 		await module.setObject(`hvt:learning:${learningId}`, learningData, hvtCollection);
 		await module.sortedSetAdd(`hvt:learnings:org:${data.orgId}:sorted`, timestamp, learningId);
 		if (data.moduleId) {
-			await module.setAdd(`hvt:learnings:module:${data.moduleId}`, learningId);
+			// Performance: Use sorted set for pagination support
+			await module.sortedSetAdd(`hvt:learnings:module:${data.moduleId}:sorted`, timestamp, learningId);
+		}
+		// Performance: Add tag indexes for learning search
+		if (data.tags && Array.isArray(data.tags)) {
+			for (const tag of data.tags) {
+				if (tag && data.orgId) {
+					await module.sortedSetAdd(`hvt:learnings:tag:${tag}:org:${data.orgId}`, timestamp, learningId);
+				}
+			}
 		}
 
 		return learningData;
 	};
 
 	module.getHVTLearning = async function (learningId) {
-		return await module.getObject(`hvt:learning:${learningId}`, [], hvtCollection);
+		// Performance: Check cache first
+		const cacheKey = hvtCache.getLearningKey(learningId);
+		const cached = hvtCache.get(cacheKey);
+		if (cached) {
+			return cached;
+		}
+
+		const learning = await module.getObject(`hvt:learning:${learningId}`, [], hvtCollection);
+		if (learning) {
+			hvtCache.set(cacheKey, learning);
+		}
+		return learning;
 	};
 
 	module.getHVTLearnings = async function (learningIds) {
@@ -429,8 +529,9 @@ module.exports = function (module) {
 		return await module.getHVTLearnings(learningIds);
 	};
 
-	module.getHVTLearningsByModule = async function (moduleId) {
-		const learningIds = await module.getSetMembers(`hvt:learnings:module:${moduleId}`);
+	module.getHVTLearningsByModule = async function (moduleId, start = 0, stop = -1) {
+		// Performance: Use sorted set for efficient pagination
+		const learningIds = await module.getSortedSetRevRange(`hvt:learnings:module:${moduleId}:sorted`, start, stop);
 		return await module.getHVTLearnings(learningIds);
 	};
 
@@ -440,11 +541,22 @@ module.exports = function (module) {
 			updatedAt: new Date().toISOString(),
 		};
 		await module.setObject(`hvt:learning:${learningId}`, updateData, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateLearning(learningId);
 		return await module.getHVTLearning(learningId);
 	};
 
 	module.getHVTLearningCount = async function (orgId) {
 		return await module.sortedSetCard(`hvt:learnings:org:${orgId}:sorted`);
+	};
+
+	// Performance: Tag-based learning search
+	module.getHVTLearningsByTag = async function (tag, orgId, start = 0, stop = -1) {
+		if (!tag || !orgId) {
+			return [];
+		}
+		const learningIds = await module.getSortedSetRevRange(`hvt:learnings:tag:${tag}:org:${orgId}`, start, stop);
+		return await module.getHVTLearnings(learningIds);
 	};
 
 	module.deleteHVTLearning = async function (learningId) {
@@ -460,8 +572,21 @@ module.exports = function (module) {
 		}
 
 		if (learning.moduleId) {
-			await module.setRemove(`hvt:learnings:module:${learning.moduleId}`, learningId);
+			// Performance: Clean up sorted set index
+			await module.sortedSetRemove(`hvt:learnings:module:${learning.moduleId}:sorted`, learningId);
 		}
+
+		// Performance: Clean up tag indexes
+		if (learning.tags && Array.isArray(learning.tags) && learning.orgId) {
+			for (const tag of learning.tags) {
+				if (tag) {
+					await module.sortedSetRemove(`hvt:learnings:tag:${tag}:org:${learning.orgId}`, learningId);
+				}
+			}
+		}
+
+		// Performance: Invalidate cache
+		hvtCache.invalidateLearning(learningId);
 
 		return true;
 	};
@@ -489,12 +614,27 @@ module.exports = function (module) {
 
 		await module.setObject(`hvt:escalation:${escalationId}`, escalationData, hvtCollection);
 		await module.sortedSetAdd(`hvt:escalations:experiment:${data.experimentId}`, timestamp, escalationId);
+		// Performance: Add org-scoped status index for escalations
+		if (data.orgId) {
+			await module.sortedSetAdd(`hvt:escalations:org:${data.orgId}:status:${escalationData.status}`, timestamp, escalationId);
+		}
 
 		return escalationData;
 	};
 
 	module.getHVTEscalation = async function (escalationId) {
-		return await module.getObject(`hvt:escalation:${escalationId}`, [], hvtCollection);
+		// Performance: Check cache first
+		const cacheKey = hvtCache.getEscalationKey(escalationId);
+		const cached = hvtCache.get(cacheKey);
+		if (cached) {
+			return cached;
+		}
+
+		const escalation = await module.getObject(`hvt:escalation:${escalationId}`, [], hvtCollection);
+		if (escalation) {
+			hvtCache.set(cacheKey, escalation);
+		}
+		return escalation;
 	};
 
 	module.getHVTEscalations = async function (escalationIds) {
@@ -514,11 +654,22 @@ module.exports = function (module) {
 	};
 
 	module.updateHVTEscalation = async function (escalationId, data) {
+		const current = await module.getHVTEscalation(escalationId);
 		const updateData = { ...data };
 		if (data.status === 'resolved' && !data.resolvedAt) {
 			updateData.resolvedAt = new Date().toISOString();
 		}
+
+		// Performance: Update org-scoped status index if status changed
+		if (data.status && current && data.status !== current.status && current.orgId) {
+			await module.sortedSetRemove(`hvt:escalations:org:${current.orgId}:status:${current.status}`, escalationId);
+			const timestamp = Date.now();
+			await module.sortedSetAdd(`hvt:escalations:org:${current.orgId}:status:${data.status}`, timestamp, escalationId);
+		}
+
 		await module.setObject(`hvt:escalation:${escalationId}`, updateData, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateEscalation(escalationId);
 		return await module.getHVTEscalation(escalationId);
 	};
 
@@ -535,7 +686,17 @@ module.exports = function (module) {
 			);
 		}
 
+		// Performance: Clean up org-scoped status index
+		if (escalation.orgId && escalation.status) {
+			await module.sortedSetRemove(
+				`hvt:escalations:org:${escalation.orgId}:status:${escalation.status}`,
+				escalationId
+			);
+		}
+
 		await module.deleteObject(`hvt:escalation:${escalationId}`, hvtCollection);
+		// Performance: Invalidate cache
+		hvtCache.invalidateEscalation(escalationId);
 		return true;
 	};
 
@@ -738,13 +899,28 @@ module.exports = function (module) {
 	};
 
 	module.countHVTIdeas = async function (orgId) {
-		// Count all ideas across all problems in org
-		const problems = await module.getHVTProblemsByOrg(orgId);
-		let total = 0;
-		for (const problem of problems) {
-			const count = await module.sortedSetCard(`hvt:ideas:problem:${problem.id}`);
-			total += count;
+		// Performance: Use cached counter if available
+		const cachedCount = await module.getObjectField(`hvt:metrics:org:${orgId}`, 'ideaCount', hvtCollection);
+		if (cachedCount !== null && cachedCount !== undefined) {
+			return parseInt(cachedCount, 10) || 0;
 		}
+
+		// Fallback: Count all ideas across all problems in org with Promise.all
+		const problems = await module.getHVTProblemsByOrg(orgId, 0, -1);
+		if (!problems || problems.length === 0) {
+			return 0;
+		}
+
+		// Performance: Batch all counts in parallel
+		const counts = await Promise.all(
+			problems.map((problem) =>
+				module.sortedSetCard(`hvt:ideas:problem:${problem.id}`)
+			)
+		);
+
+		const total = counts.reduce((sum, count) => sum + count, 0);
+		// Cache the result
+		await module.setObjectField(`hvt:metrics:org:${orgId}`, 'ideaCount', total, hvtCollection);
 		return total;
 	};
 

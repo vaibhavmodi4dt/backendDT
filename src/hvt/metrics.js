@@ -1,46 +1,61 @@
 'use strict';
 
 const db = require('../database');
+const hvtCache = require('./cache');
+const monitoring = require('./monitoring');
 
 const Metrics = module.exports;
 
 /**
- * Get HVT metrics for an organization
+ * Get HVT metrics for an organization with caching
  */
 Metrics.getByOrg = async function (orgId) {
 	if (!orgId) {
 		throw new Error('[[error:org-id-required]]');
 	}
 
-	const [
-		problemCount,
-		ideaCount,
-		experimentCount,
-		learningCount,
-		activeExperiments,
-		blockedExperiments,
-		completedExperiments,
-	] = await Promise.all([
-		db.countHVTProblems(orgId),
-		db.countHVTIdeas(orgId),
-		db.countHVTExperiments(orgId),
-		db.countHVTLearnings(orgId),
-		db.getHVTExperimentsByStatus(orgId, 'active'),
-		db.getHVTExperimentsByStatus(orgId, 'blocked'),
-		db.getHVTExperimentsByStatus(orgId, 'completed'),
-	]);
+	// Performance: Check cache first
+	const cacheKey = hvtCache.getMetricsKey(orgId);
+	const cached = hvtCache.get(cacheKey);
+	if (cached) {
+		return cached;
+	}
 
-	return {
-		orgId,
-		totalProblems: problemCount,
-		totalIdeas: ideaCount,
-		totalExperiments: experimentCount,
-		totalLearnings: learningCount,
-		activeExperiments: activeExperiments.length,
-		blockedExperiments: blockedExperiments.length,
-		completedExperiments: completedExperiments.length,
-		generatedAt: Date.now(),
-	};
+	return await monitoring.measureTime('orgMetrics', async () => {
+		const [
+			problemCount,
+			ideaCount,
+			experimentCount,
+			learningCount,
+			activeExperiments,
+			blockedExperiments,
+			completedExperiments,
+		] = await Promise.all([
+			db.countHVTProblems(orgId),
+			db.countHVTIdeas(orgId),
+			db.countHVTExperiments(orgId),
+			db.countHVTLearnings(orgId),
+			db.getHVTExperimentsByStatus('active', orgId, 0, -1),
+			db.getHVTExperimentsByStatus('blocked', orgId, 0, -1),
+			db.getHVTExperimentsByStatus('completed', orgId, 0, -1),
+		]);
+
+		const metrics = {
+			orgId,
+			totalProblems: problemCount,
+			totalIdeas: ideaCount,
+			totalExperiments: experimentCount,
+			totalLearnings: learningCount,
+			activeExperiments: activeExperiments.length,
+			blockedExperiments: blockedExperiments.length,
+			completedExperiments: completedExperiments.length,
+			generatedAt: Date.now(),
+		};
+
+		// Performance: Cache for 5 minutes
+		hvtCache.set(cacheKey, metrics, 1000 * 60 * 5);
+		return metrics;
+	});
 };
 
 /**
@@ -57,7 +72,7 @@ Metrics.getByModule = async function (moduleId, orgId) {
 
 	const [problems, experiments, learnings] = await Promise.all([
 		db.getHVTProblemsByModule(moduleId),
-		db.getHVTExperimentsByModule(moduleId),
+		db.getHVTExperimentsByModule(moduleId, orgId), // Performance: Pass orgId for optimized query
 		db.getHVTLearningsByModule(moduleId),
 	]);
 
@@ -121,4 +136,11 @@ Metrics.getVelocity = async function (orgId, days = 30) {
 		avgCycleTimeMs: Math.round(avgCycleTime),
 		generatedAt: Date.now(),
 	};
+};
+
+/**
+ * Get performance monitoring report
+ */
+Metrics.getPerformanceReport = function () {
+	return monitoring.getPerformanceReport();
 };

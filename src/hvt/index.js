@@ -43,3 +43,5 @@ HVT.updates = updates;
 HVT.roles = roles;
 HVT.metrics = metrics;
 HVT.helpers = helpers;
+HVT.cache = require('./cache');
+HVT.monitoring = require('./monitoring');
