@@ -9,7 +9,7 @@ const { setupApiRoute } = routeHelpers;
 const hvtMiddleware = require('../../middleware/hvt');
 
 module.exports = function () {
-	const middlewares = [middleware.ensureLoggedIn, middleware.organization.attachOrganization];
+	const middlewares = [middleware.ensureLoggedIn];
 
 	// ==========================================
 	// MODULES
