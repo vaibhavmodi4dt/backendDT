@@ -37,7 +37,7 @@ Problems.create = async function (orgId, data, uid) {
 /**
  * Get problem by ID
  */
-Problems.get = async function (problemId) {
+Problems.get = async function (problemId, orgId = null) {
 	if (!problemId) {
 		throw new Error('[[error:invalid-problem-id]]');
 	}
@@ -46,6 +46,11 @@ Problems.get = async function (problemId) {
 
 	if (!problem) {
 		throw new Error('[[error:problem-not-found]]');
+	}
+
+	// Validate organization access if orgId provided
+	if (orgId && problem.orgId !== orgId) {
+		throw new Error('[[error:no-privileges]]');
 	}
 
 	return helpers.sanitizeProblem(problem);

@@ -386,7 +386,7 @@ module.exports = function (module) {
 			_key: `hvt:learning:${learningId}`,
 			id: String(learningId),
 			experimentId: data.experimentId,
-			hashedBy: data.hashedBy,
+			createdBy: data.createdBy,
 			title: data.title,
 			description: data.description,
 			caveat: data.caveat || null,
@@ -447,6 +447,25 @@ module.exports = function (module) {
 		return await module.sortedSetCard(`hvt:learnings:org:${orgId}:sorted`);
 	};
 
+	module.deleteHVTLearning = async function (learningId) {
+		const learning = await module.getHVTLearning(learningId);
+		if (!learning) {
+			return false;
+		}
+
+		await module.deleteObject(`hvt:learning:${learningId}`, hvtCollection);
+
+		if (learning.orgId) {
+			await module.sortedSetRemove(`hvt:learnings:org:${learning.orgId}:sorted`, learningId);
+		}
+
+		if (learning.moduleId) {
+			await module.setRemove(`hvt:learnings:module:${learning.moduleId}`, learningId);
+		}
+
+		return true;
+	};
+
 	// ==================== ESCALATIONS ====================
 
 	module.createHVTEscalation = async function (data) {
@@ -457,12 +476,12 @@ module.exports = function (module) {
 			_key: `hvt:escalation:${escalationId}`,
 			id: String(escalationId),
 			experimentId: data.experimentId,
-			createdBy: data.createdBy,
+			raisedBy: data.raisedBy,
 			resolvedBy: data.resolvedBy || null,
-			title: data.title,
-			description: data.description || null,
+			reason: data.reason,
+			severity: data.severity,
 			status: data.status || 'open',
-			resolutionNotes: data.resolutionNotes || null,
+			assignedTo: data.assignedTo || null,
 			createdAt: new Date(timestamp).toISOString(),
 			resolvedAt: data.resolvedAt || null,
 			orgId: data.orgId,
@@ -501,6 +520,23 @@ module.exports = function (module) {
 		}
 		await module.setObject(`hvt:escalation:${escalationId}`, updateData, hvtCollection);
 		return await module.getHVTEscalation(escalationId);
+	};
+
+	module.deleteHVTEscalation = async function (escalationId) {
+		const escalation = await module.getHVTEscalation(escalationId);
+		if (!escalation) {
+			return false;
+		}
+
+		if (escalation.experimentId) {
+			await module.sortedSetRemove(
+				`hvt:escalations:experiment:${escalation.experimentId}`,
+				escalationId
+			);
+		}
+
+		await module.deleteObject(`hvt:escalation:${escalationId}`, hvtCollection);
+		return true;
 	};
 
 	// ==================== TICKETS ====================
@@ -549,6 +585,23 @@ module.exports = function (module) {
 		return await module.getHVTTickets(ticketIds);
 	};
 
+	module.deleteHVTTicket = async function (ticketId) {
+		const ticket = await module.getHVTTicket(ticketId);
+		if (!ticket) {
+			return false;
+		}
+
+		if (ticket.experimentId) {
+			await module.sortedSetRemove(
+				`hvt:tickets:experiment:${ticket.experimentId}`,
+				ticketId
+			);
+		}
+
+		await module.deleteObject(`hvt:ticket:${ticketId}`, hvtCollection);
+		return true;
+	};
+
 	// ==================== EXPERIMENT UPDATES ====================
 
 	module.createHVTUpdate = async function (data) {
@@ -559,8 +612,8 @@ module.exports = function (module) {
 			_key: `hvt:update:${updateId}`,
 			id: String(updateId),
 			experimentId: data.experimentId,
-			createdBy: data.createdBy,
-			updateType: data.updateType,
+			postedBy: data.postedBy,
+			updateType: data.updateType || null,
 			content: data.content,
 			createdAt: new Date(timestamp).toISOString(),
 		};

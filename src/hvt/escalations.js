@@ -56,7 +56,7 @@ Escalations.create = async function (experimentId, data, uid) {
 /**
  * Get a single escalation
  */
-Escalations.get = async function (escalationId) {
+Escalations.get = async function (escalationId, orgId = null) {
 	if (!escalationId) {
 		throw new Error('[[error:escalation-id-required]]');
 	}
@@ -64,6 +64,11 @@ Escalations.get = async function (escalationId) {
 	const escalation = await db.getHVTEscalation(escalationId);
 	if (!escalation) {
 		throw new Error('[[error:escalation-not-found]]');
+	}
+
+	// Validate organization access if orgId provided
+	if (orgId && escalation.orgId !== orgId) {
+		throw new Error('[[error:no-privileges]]');
 	}
 
 	return escalation;
@@ -123,7 +128,8 @@ Escalations.updateStatus = async function (escalationId, newStatus) {
 	}
 
 	// Validate transition
-	if (!helpers.canTransitionEscalationTo(escalation.status, newStatus)) {
+	const canTransition = helpers.canTransitionEscalationTo(escalation.status, newStatus);
+	if (!canTransition.valid) {
 		throw new Error(`[[error:invalid-escalation-transition-${escalation.status}-to-${newStatus}]]`);
 	}
 

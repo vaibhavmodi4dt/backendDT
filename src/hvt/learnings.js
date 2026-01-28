@@ -49,7 +49,7 @@ Learnings.create = async function (experimentId, data, uid) {
 /**
  * Get a single learning
  */
-Learnings.get = async function (learningId) {
+Learnings.get = async function (learningId, orgId = null) {
 	if (!learningId) {
 		throw new Error('[[error:learning-id-required]]');
 	}
@@ -57,6 +57,11 @@ Learnings.get = async function (learningId) {
 	const learning = await db.getHVTLearning(learningId);
 	if (!learning) {
 		throw new Error('[[error:learning-not-found]]');
+	}
+
+	// Validate organization access if orgId provided
+	if (orgId && learning.orgId !== orgId) {
+		throw new Error('[[error:no-privileges]]');
 	}
 
 	return learning;

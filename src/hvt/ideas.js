@@ -47,7 +47,7 @@ Ideas.create = async function (problemId, data, uid) {
 /**
  * Get idea by ID
  */
-Ideas.get = async function (ideaId) {
+Ideas.get = async function (ideaId, orgId = null) {
 	if (!ideaId) {
 		throw new Error('[[error:invalid-idea-id]]');
 	}
@@ -56,6 +56,11 @@ Ideas.get = async function (ideaId) {
 
 	if (!idea) {
 		throw new Error('[[error:idea-not-found]]');
+	}
+
+	// Validate organization access if orgId provided
+	if (orgId && idea.orgId !== orgId) {
+		throw new Error('[[error:no-privileges]]');
 	}
 
 	return helpers.sanitizeIdea(idea);

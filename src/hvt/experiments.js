@@ -56,7 +56,7 @@ Experiments.create = async function (ideaId, data, uid) {
 /**
  * Get experiment by ID
  */
-Experiments.get = async function (experimentId) {
+Experiments.get = async function (experimentId, orgId = null) {
 	if (!experimentId) {
 		throw new Error('[[error:invalid-experiment-id]]');
 	}
@@ -65,6 +65,11 @@ Experiments.get = async function (experimentId) {
 
 	if (!experiment) {
 		throw new Error('[[error:experiment-not-found]]');
+	}
+
+	// Validate organization access if orgId provided
+	if (orgId && experiment.orgId !== orgId) {
+		throw new Error('[[error:no-privileges]]');
 	}
 
 	return helpers.sanitizeExperiment(experiment);

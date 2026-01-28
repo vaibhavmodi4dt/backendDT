@@ -57,7 +57,10 @@ hvtApi.createProblem = async function (caller, data) {
 };
 
 hvtApi.getProblem = async function (caller, data) {
-	return await HVT.problems.get(data.problemId);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.problems.get(data.problemId, caller.organisation.orgId);
 };
 
 hvtApi.getProblemsByOrg = async function (caller, data) {
@@ -72,11 +75,11 @@ hvtApi.getProblemsByModule = async function (caller, data) {
 };
 
 hvtApi.updateProblem = async function (caller, data) {
-	return await HVT.problems.update(data.problemId, data.updates);
+	return await HVT.problems.update(data.problemId, data.updates, caller.uid);
 };
 
 hvtApi.updateProblemStatus = async function (caller, data) {
-	return await HVT.problems.updateStatus(data.problemId, data.status);
+	return await HVT.problems.updateStatus(data.problemId, data.status, caller.uid);
 };
 
 hvtApi.deleteProblem = async function (caller, data) {
@@ -97,7 +100,10 @@ hvtApi.createIdea = async function (caller, data) {
 };
 
 hvtApi.getIdea = async function (caller, data) {
-	return await HVT.ideas.get(data.ideaId);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.ideas.get(data.ideaId, caller.organisation.orgId);
 };
 
 hvtApi.getIdeasByProblem = async function (caller, data) {
@@ -105,27 +111,27 @@ hvtApi.getIdeasByProblem = async function (caller, data) {
 };
 
 hvtApi.updateIdea = async function (caller, data) {
-	return await HVT.ideas.update(data.ideaId, data.updates);
+	return await HVT.ideas.update(data.ideaId, data.updates, caller.uid);
 };
 
 hvtApi.scoreIdea = async function (caller, data) {
 	return await HVT.ideas.score(data.ideaId, {
-		impact: data.impact,
-		confidence: data.confidence,
-		ease: data.ease,
-	});
+		impactScore: data.impact,
+		confidenceScore: data.confidence,
+		easeScore: data.ease,
+	}, caller.uid);
 };
 
 hvtApi.approveIdea = async function (caller, data) {
-	return await HVT.ideas.approve(data.ideaId);
+	return await HVT.ideas.approve(data.ideaId, caller.uid);
 };
 
 hvtApi.rejectIdea = async function (caller, data) {
-	return await HVT.ideas.reject(data.ideaId);
+	return await HVT.ideas.reject(data.ideaId, caller.uid);
 };
 
 hvtApi.updateIdeaStatus = async function (caller, data) {
-	return await HVT.ideas.updateStatus(data.ideaId, data.status);
+	return await HVT.ideas.updateStatus(data.ideaId, data.status, caller.uid);
 };
 
 // ==========================================
@@ -144,7 +150,10 @@ hvtApi.createExperiment = async function (caller, data) {
 };
 
 hvtApi.getExperiment = async function (caller, data) {
-	return await HVT.experiments.get(data.experimentId);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.experiments.get(data.experimentId, caller.organisation.orgId);
 };
 
 hvtApi.getExperimentsByOrg = async function (caller, data) {
@@ -162,19 +171,19 @@ hvtApi.getExperimentsByStatus = async function (caller, data) {
 };
 
 hvtApi.updateExperiment = async function (caller, data) {
-	return await HVT.experiments.update(data.experimentId, data.updates);
+	return await HVT.experiments.update(data.experimentId, data.updates, caller.uid);
 };
 
 hvtApi.updateExperimentStatus = async function (caller, data) {
-	return await HVT.experiments.updateStatus(data.experimentId, data.status);
+	return await HVT.experiments.updateStatus(data.experimentId, data.status, caller.uid);
 };
 
 hvtApi.haltExperiment = async function (caller, data) {
-	return await HVT.experiments.halt(data.experimentId, data.reason);
+	return await HVT.experiments.halt(data.experimentId, data.reason, caller.uid);
 };
 
 hvtApi.verifyExperiment = async function (caller, data) {
-	return await HVT.experiments.verify(data.experimentId);
+	return await HVT.experiments.verify(data.experimentId, caller.uid);
 };
 
 hvtApi.getExperimentWithRelations = async function (caller, data) {
@@ -202,7 +211,10 @@ hvtApi.createLearning = async function (caller, data) {
 };
 
 hvtApi.getLearning = async function (caller, data) {
-	return await HVT.learnings.get(data.learningId);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.learnings.get(data.learningId, caller.organisation.orgId);
 };
 
 hvtApi.getLearningsByOrg = async function (caller, data) {
@@ -246,7 +258,10 @@ hvtApi.createEscalation = async function (caller, data) {
 };
 
 hvtApi.getEscalation = async function (caller, data) {
-	return await HVT.escalations.get(data.escalationId);
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.escalations.get(data.escalationId, caller.organisation.orgId);
 };
 
 hvtApi.getEscalationsByExperiment = async function (caller, data) {
