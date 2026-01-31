@@ -1,5 +1,6 @@
 'use strict';
 
+const winston = require('winston');
 const cacheCreate = require('../cache/lru');
 const Organizations = require('../organizations');
 const helpers = require('./helpers');
@@ -104,7 +105,7 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 		next();
 	} catch (err) {
 		// Log error but don't fail the request
-		require('../logger').error(`Error in organizationContext middleware: ${err.message}`);
+		winston.error(`Error in organizationContext middleware: ${err.message}`);
 		next();
 	}
 });
