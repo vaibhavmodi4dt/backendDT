@@ -19,7 +19,6 @@ module.exports = function (module) {
 			name: data.name,
 			description: data.description || null,
 			color: data.color || '#6366F1',
-			orgId: data.orgId,
 			createdAt: new Date(timestamp).toISOString(),
 			updatedAt: new Date(timestamp).toISOString(),
 			orgId: data.orgId,
@@ -870,14 +869,14 @@ module.exports = function (module) {
 		if (!uids || !uids.length) {
 			return [];
 		}
-		
+
 		const roles = await Promise.all(
 			uids.map(async (uid) => {
 				const roleData = await module.getObject(`hvt:role:${orgId}:${uid}`, [], hvtCollection);
 				return roleData;
 			})
 		);
-		
+
 		return roles.filter(Boolean);
 	};
 
