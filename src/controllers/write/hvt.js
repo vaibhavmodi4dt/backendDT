@@ -165,6 +165,15 @@ HVT.getIdeasByProblem = async function (req, res) {
 };
 
 /**
+ * GET /api/v3/hvt/ideas
+ */
+HVT.getIdeasByOrg = async function (req, res) {
+	helpers.formatApiResponse(200, res, await api.hvt.getIdeasByOrg(req, {
+		filters: req.query,
+	}));
+};
+
+/**
  * PUT /api/v3/hvt/ideas/:ideaId
  */
 HVT.updateIdea = async function (req, res) {

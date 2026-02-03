@@ -154,6 +154,14 @@ module.exports = function () {
 	setupApiRoute(
 		router,
 		'get',
+		'/ideas',
+		[...middlewares],
+		controllers.write.hvt.getIdeasByOrg
+	);
+
+	setupApiRoute(
+		router,
+		'get',
 		'/problems/:problemId/ideas',
 		[...middlewares],
 		controllers.write.hvt.getIdeasByProblem

@@ -71,7 +71,7 @@ Helpers.PROBLEM_TRANSITIONS = {
 
 Helpers.IDEA_TRANSITIONS = {
 	draft: ['pending_review'],
-	pending_review: ['approved', 'rejected', 'draft'],
+	pending_review: ['approved', 'rejected', 'draft' , 'pending_review'], // Allow re-review
 	approved: ['scored'],
 	rejected: [], // Terminal unless manually changed
 	scored: [], // Terminal - idea is ready for experiments

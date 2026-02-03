@@ -263,6 +263,30 @@ module.exports = function (module) {
 		return await module.getHVTIdeas(ideaIds);
 	};
 
+	module.getHVTIdeasByOrg = async function (orgId, filters = {}) {
+		let ideaIds;
+
+		// If status filter is provided, get from status set
+		if (filters.status) {
+			ideaIds = await module.getSetMembers(`hvt:ideas:status:${filters.status}`);
+		} else {
+			// Get all ideas from all statuses
+			const statuses = ['draft', 'pending_review', 'in_review', 'approved', 'rejected', 'in_progress', 'completed'];
+			const allIdSets = await Promise.all(
+				statuses.map(status => module.getSetMembers(`hvt:ideas:status:${status}`))
+			);
+			ideaIds = allIdSets.flat();
+		}
+
+		if (!ideaIds || !ideaIds.length) {
+			return [];
+		}
+
+		// Get all ideas and filter by orgId (handle both string and number types)
+		const ideas = await module.getHVTIdeas(ideaIds);
+		return ideas.filter(idea => idea && String(idea.orgId) === String(orgId));
+	};
+
 	module.updateHVTIdea = async function (ideaId, data) {
 		const current = await module.getHVTIdea(ideaId);
 		const updateData = {

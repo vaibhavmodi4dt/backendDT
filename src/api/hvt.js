@@ -126,6 +126,13 @@ hvtApi.getIdeasByProblem = async function (caller, data) {
 	return await HVT.ideas.getByProblem(data.problemId);
 };
 
+hvtApi.getIdeasByOrg = async function (caller, data) {
+	if (!caller.organisation?.orgId) {
+		throw new Error('[[error:organization-context-required]]');
+	}
+	return await HVT.ideas.getByOrg(caller.organisation.orgId, data.filters || {});
+};
+
 hvtApi.updateIdea = async function (caller, data) {
 	return await HVT.ideas.update(data.ideaId, data.updates, caller.uid);
 };

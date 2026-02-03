@@ -89,6 +89,19 @@ Ideas.getByProblem = async function (problemId, options = {}) {
 };
 
 /**
+ * Get ideas by organization with optional filters
+ */
+Ideas.getByOrg = async function (orgId, filters = {}) {
+	if (!orgId) {
+		throw new Error('[[error:organization-id-required]]');
+	}
+
+	const ideas = await db.getHVTIdeasByOrg(orgId, filters);
+
+	return helpers.sanitizeIdeas(ideas);
+};
+
+/**
  * Update idea
  */
 Ideas.update = async function (ideaId, data, uid) {
