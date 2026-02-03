@@ -19,7 +19,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/modules',
-		[...middlewares, hvtMiddleware.canManageModules],
+		[...middlewares],
 		controllers.write.hvt.createModule
 	);
 
@@ -27,7 +27,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/modules/:moduleId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getModule
 	);
 
@@ -35,7 +35,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/modules',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getAllModules
 	);
 
@@ -43,7 +43,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/modules/:moduleId',
-		[...middlewares, hvtMiddleware.canManageModules, hvtMiddleware.moduleExists],
+		[...middlewares],
 		controllers.write.hvt.updateModule
 	);
 
@@ -51,7 +51,7 @@ module.exports = function () {
 		router,
 		'delete',
 		'/modules/:moduleId',
-		[...middlewares, hvtMiddleware.canManageModules, hvtMiddleware.moduleExists],
+		[...middlewares],
 		controllers.write.hvt.deleteModule
 	);
 
@@ -59,7 +59,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/modules/seed',
-		[...middlewares, hvtMiddleware.canManageModules],
+		[...middlewares],
 		controllers.write.hvt.seedModules
 	);
 
@@ -71,7 +71,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/problems',
-		[...middlewares, hvtMiddleware.canManageProblems],
+		[...middlewares],
 		controllers.write.hvt.createProblem
 	);
 
@@ -79,7 +79,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/problems/:problemId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.getProblem
 	);
 
@@ -87,7 +87,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/problems',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getProblemsByOrg
 	);
 
@@ -95,7 +95,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/modules/:moduleId/problems',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.moduleExists],
+		[...middlewares],
 		controllers.write.hvt.getProblemsByModule
 	);
 
@@ -103,7 +103,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/problems/:problemId',
-		[...middlewares, hvtMiddleware.canManageProblems, hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.updateProblem
 	);
 
@@ -111,7 +111,7 @@ module.exports = function () {
 		router,
 		'patch',
 		'/problems/:problemId/status',
-		[...middlewares, hvtMiddleware.canManageProblems, hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.updateProblemStatus
 	);
 
@@ -119,7 +119,7 @@ module.exports = function () {
 		router,
 		'delete',
 		'/problems/:problemId',
-		[...middlewares, hvtMiddleware.canManageProblems, hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.deleteProblem
 	);
 
@@ -127,7 +127,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/problems/:problemId/with-counts',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.getProblemWithCounts
 	);
 
@@ -139,7 +139,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/problems/:problemId/ideas',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.createIdea
 	);
 
@@ -147,7 +147,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/ideas/:ideaId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.getIdea
 	);
 
@@ -155,7 +155,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/problems/:problemId/ideas',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.problemExists],
+		[...middlewares],
 		controllers.write.hvt.getIdeasByProblem
 	);
 
@@ -163,7 +163,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/ideas/:ideaId',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.updateIdea
 	);
 
@@ -171,7 +171,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/ideas/:ideaId/score',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.scoreIdea
 	);
 
@@ -179,7 +179,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/ideas/:ideaId/approve',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.approveIdea
 	);
 
@@ -187,7 +187,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/ideas/:ideaId/reject',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.rejectIdea
 	);
 
@@ -195,7 +195,7 @@ module.exports = function () {
 		router,
 		'patch',
 		'/ideas/:ideaId/status',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.updateIdeaStatus
 	);
 
@@ -207,7 +207,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/ideas/:ideaId/experiments',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.createExperiment
 	);
 
@@ -215,7 +215,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/:experimentId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.getExperiment
 	);
 
@@ -223,7 +223,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getExperimentsByOrg
 	);
 
@@ -231,7 +231,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/status/:status',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getExperimentsByStatus
 	);
 
@@ -239,7 +239,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/experiments/:experimentId',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.updateExperiment
 	);
 
@@ -247,7 +247,7 @@ module.exports = function () {
 		router,
 		'patch',
 		'/experiments/:experimentId/status',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.updateExperimentStatus
 	);
 
@@ -255,7 +255,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/halt',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.haltExperiment
 	);
 
@@ -263,7 +263,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/verify',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.verifyExperiment
 	);
 
@@ -271,7 +271,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/:experimentId/with-relations',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.getExperimentWithRelations
 	);
 
@@ -283,7 +283,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/results',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.createResult
 	);
 
@@ -291,7 +291,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/:experimentId/results',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.getResultsByExperiment
 	);
 
@@ -303,7 +303,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/learnings',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.createLearning
 	);
 
@@ -311,7 +311,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/learnings/:learningId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.getLearning
 	);
 
@@ -319,7 +319,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/learnings',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getLearningsByOrg
 	);
 
@@ -327,7 +327,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/modules/:moduleId/learnings',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.moduleExists],
+		[...middlewares],
 		controllers.write.hvt.getLearningsByModule
 	);
 
@@ -335,7 +335,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/learnings/:learningId/similar',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.getSimilarLearnings
 	);
 
@@ -343,7 +343,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/learnings/:learningId',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.updateLearning
 	);
 
@@ -351,7 +351,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/learnings/:learningId/archive',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.archiveLearning
 	);
 
@@ -359,7 +359,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/learnings/:learningId/unarchive',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.unarchiveLearning
 	);
 
@@ -367,7 +367,7 @@ module.exports = function () {
 		router,
 		'delete',
 		'/learnings/:learningId',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.learningExists],
+		[...middlewares],
 		controllers.write.hvt.deleteLearning
 	);
 
@@ -379,7 +379,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/escalations',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.createEscalation
 	);
 
@@ -387,7 +387,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/escalations/:escalationId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.escalationExists],
+		[...middlewares],
 		controllers.write.hvt.getEscalation
 	);
 
@@ -395,7 +395,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/:experimentId/escalations',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.getEscalationsByExperiment
 	);
 
@@ -403,7 +403,7 @@ module.exports = function () {
 		router,
 		'put',
 		'/escalations/:escalationId',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.escalationExists],
+		[...middlewares],
 		controllers.write.hvt.updateEscalation
 	);
 
@@ -411,7 +411,7 @@ module.exports = function () {
 		router,
 		'patch',
 		'/escalations/:escalationId/status',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.escalationExists],
+		[...middlewares],
 		controllers.write.hvt.updateEscalationStatus
 	);
 
@@ -419,7 +419,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/escalations/:escalationId/resolve',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.escalationExists],
+		[...middlewares],
 		controllers.write.hvt.resolveEscalation
 	);
 
@@ -427,7 +427,7 @@ module.exports = function () {
 		router,
 		'delete',
 		'/escalations/:escalationId',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.escalationExists],
+		[...middlewares],
 		controllers.write.hvt.deleteEscalation
 	);
 
@@ -439,7 +439,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/ideas/:ideaId/tickets',
-		[...middlewares, hvtMiddleware.canManageIdeas, hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.createTicket
 	);
 
@@ -447,7 +447,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/ideas/:ideaId/tickets',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.ideaExists],
+		[...middlewares],
 		controllers.write.hvt.getTicketsByIdea
 	);
 
@@ -459,7 +459,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/experiments/:experimentId/updates',
-		[...middlewares, hvtMiddleware.canManageExperiments, hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.createUpdate
 	);
 
@@ -467,7 +467,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/experiments/:experimentId/updates',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.experimentExists],
+		[...middlewares],
 		controllers.write.hvt.getUpdatesByExperiment
 	);
 
@@ -479,7 +479,7 @@ module.exports = function () {
 		router,
 		'post',
 		'/roles',
-		[...middlewares, hvtMiddleware.canManageRoles],
+		[...middlewares],
 		controllers.write.hvt.setRole
 	);
 
@@ -487,7 +487,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/roles/:uid',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getRole
 	);
 
@@ -495,7 +495,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/roles',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getRolesByOrg
 	);
 
@@ -503,7 +503,7 @@ module.exports = function () {
 		router,
 		'delete',
 		'/roles/:uid',
-		[...middlewares, hvtMiddleware.canManageRoles],
+		[...middlewares],
 		controllers.write.hvt.removeRole
 	);
 
@@ -515,7 +515,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/metrics',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getMetricsByOrg
 	);
 
@@ -523,7 +523,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/metrics/module/:moduleId',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer'), hvtMiddleware.moduleExists],
+		[...middlewares],
 		controllers.write.hvt.getMetricsByModule
 	);
 
@@ -531,7 +531,7 @@ module.exports = function () {
 		router,
 		'get',
 		'/metrics/velocity',
-		[...middlewares, hvtMiddleware.hasHVTRole('viewer')],
+		[...middlewares],
 		controllers.write.hvt.getVelocity
 	);
 
