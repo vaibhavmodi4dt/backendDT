@@ -62,7 +62,8 @@ Storage.updateMemberRubric = async function (deptId, uid, weekStart, rubricData,
     }
 
     // 2. Find member in members array
-    const memberIndex = dashboard.members.findIndex(m => m.uid === uid);
+
+    const memberIndex = dashboard.members.findIndex(m => m.uid === Number(uid));
     if (memberIndex === -1) {
         throw new Error('[[error:member-not-found]]');
     }

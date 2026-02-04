@@ -11,12 +11,12 @@ async function ensureManager(req, deptId, weekStart) {
     if (!req.uid) throw new Error('[[error:not-logged-in]]');
     if (!deptId) throw new Error('[[error:invalid-department-id]]');
     if (!weekStart) throw new Error('[[error:week-start-required]]');
-    
+
     // Honor middleware-set privilege flags (admins and org/department managers)
     if (req.isAdmin || req.isOrgManager || req.isDeptManager) {
         return;
     }
-    
+
     const isManager = await Organizations.isDepartmentManager(deptId, req.uid);
     if (!isManager) throw new Error('[[error:no-permission]]');
 }
@@ -93,15 +93,18 @@ function formatWeeklyReport(weeklyReport) {
 supervisor.getDashboard = async (req, data) => {
     const { deptId, weekStart, uid } = data;
 
+
     // Check permission using shared logic
     await ensureManager(req, deptId, weekStart);
 
     const dashboard = await storage.getDepartmentDashboard(deptId, weekStart);
-    if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
 
+    if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
     // If uid provided, return single member + department info (NO teamSummary)
     if (uid) {
-        const member = dashboard.members.find(m => m.uid === uid);
+        // Use type coercion to handle uid as string or number
+        const member = dashboard.members.find(m => m.uid === Number(uid));
+
         if (!member) throw new Error('[[error:member-not-found]]');
 
         return {
@@ -215,6 +218,7 @@ supervisor.getReports = async (req, data) => {
 supervisor.updateMemberRubric = async (req, data) => {
     const { deptId, uid, weekStart, rubricData } = data;
 
+
     // Validation
     if (!uid) throw new Error('[[error:invalid-user-id]]');
 
@@ -224,8 +228,8 @@ supervisor.updateMemberRubric = async (req, data) => {
     // Fetch dashboard once and validate member exists
     const dashboard = await storage.getDepartmentDashboard(deptId, weekStart);
     if (!dashboard) throw new Error('[[error:dashboard-not-found]]');
-
-    const memberExists = dashboard.members.some(m => m.uid === uid);
+    // Use type coercion to handle uid as string or number
+    const memberExists = dashboard.members.some(m => m.uid === Number(uid));
     if (!memberExists) throw new Error('[[error:member-not-found]]');
 
     // Prepare rubric data with audit trail
