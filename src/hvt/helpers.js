@@ -74,7 +74,7 @@ Helpers.IDEA_TRANSITIONS = {
 	pending_review: ['approved', 'rejected', 'draft', 'pending_review', 'scored'], // Allow re-review and direct scoring
 	approved: ['scored'],
 	rejected: [], // Terminal unless manually changed
-	scored: [], // Terminal - idea is ready for experiments
+	scored: ['approved'], // Allow approval after scoring
 };
 
 Helpers.ESCALATION_TRANSITIONS = {
