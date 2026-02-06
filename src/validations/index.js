@@ -7,6 +7,8 @@ const threadbuilder = require('./threadbuilder');
 const workspace = require('./workspace');
 const reports = require('./reports');
 const recognition = require('./recognition');
+const pitch = require('./pitch');
+const supervisor = require('./supervisor');
 
 
 module.exports = {
@@ -15,6 +17,8 @@ module.exports = {
 	user,
 	threadbuilder,
 	workspace,
+	recognition,
+	pitch,
 	reports,
-	recognition
+	supervisor,
 };

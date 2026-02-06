@@ -190,6 +190,7 @@ function setupExpressApp(app) {
 	app.use(middleware.addHeaders);
 	app.use(middleware.processRender);
 	auth.initialize(app, middleware);
+	app.use(middleware.organizationContext);
 	const als = require('./als');
 	const apiHelpers = require('./api/helpers');
 	app.use((req, res, next) => {

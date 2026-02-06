@@ -1,6 +1,6 @@
 'use strict';
 
-const {collections} = require('./collections');
+const { collections } = require('./collections');
 
 module.exports = function (module) {
 	const helpers = require('./helpers');
@@ -563,8 +563,8 @@ module.exports = function (module) {
 		const deptMap = new Map(departments.map(d => [d.deptId, d]));
 		const roleMap = new Map(roles.map(r => [r.roleId, r]));
 
-		// Step 6: Assemble response
-		const result = organizations.map((org) => {
+		// Step 6: Assemble response with privileges
+		const result = await Promise.all(organizations.map(async (org) => {
 			if (!org) return null;
 
 			const orgMemberships = memberships
@@ -578,13 +578,37 @@ module.exports = function (module) {
 					role: roleMap.get(m.roleId) || null,
 				}));
 
+			// Check all privileges for this organization
+			const [isMember, isManager, isLeader] = await Promise.all([
+				module.isMember(org.orgId, uid),
+				module.isManager(org.orgId, uid),
+				module.isLeader(org.orgId, uid),
+			]);
+
+			// Get department-level privileges for user's departments
+			const departmentPrivileges = await Promise.all(
+				orgMemberships
+					.filter(m => m.department)
+					.map(async (m) => ({
+						departmentId: m.department.deptId,
+						isDepartmentMember: await module.isDepartmentMember(m.department.deptId, uid),
+						isDepartmentManager: await module.isDepartmentManager(m.department.deptId, uid),
+					}))
+			);
+
 			return {
 				...org,
 				memberships: orgMemberships,
+				privileges: {
+					isMember,
+					isManager,
+					isLeader,
+					departments: departmentPrivileges,
+				},
 			};
-		}).filter(Boolean);
+		}));
 
-		return result;
+		return result.filter(Boolean);
 	};
 
 	// ==================== STATS & COUNTS ====================

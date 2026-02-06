@@ -32,7 +32,7 @@ GoogleAuthController.init = async function () {
     console.log('🔵 [Google OAuth] Registering Passport Google Strategy...');
     
     // ✅ Callback URL points to FRONTEND
-    const frontendCallbackUrl = 'http://localhost:4000/auth/verify';
+    const frontendCallbackUrl = nconf.get('app_url');;
     console.log('🔵 [Google OAuth] Callback URL (via frontend):', frontendCallbackUrl);
 
     passport.use(new GoogleStrategy({

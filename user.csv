@@ -1,0 +1,67 @@
+Student Unicorn,SU UID,Organization,SU Email,Role,Departpement/Lab,Is Project Manager?,is Org Manager?,"Is Org Leader? (CEO,CTO)",PM,Project Start Date,UID,Organization ID,Department ID,Role ID,Membership ID,Member Type,Status,Username,Userslug,Full Timer (Y/N)
+Swapnanil Chakraborty,,DeepThought,swapnanilmwq@gmail.com,Software Developer,AIT Lab,FALSE,FALSE,FALSE,Shagun Mishra,08/12/2025,61,1,14,7,59,member,active,swapnanilmwq,swapnanilmwq,No
+Atharv Datta Gawade,,DeepThought,atharv.gawade.9120@gmail.com,Business Development,BGC Lab,FALSE,FALSE,FALSE,Artuha Paul,21/12/2025,60,1,13,10,10,member,active,atharv.gawade.9120,atharv-gawade-9120,No
+Manvi babbar,,DeepThought,manvibabbar2@gmail.com,Telecalling,BGC Lab,FALSE,FALSE,FALSE,Artuha Paul,28/11/2025,55,1,13,15,25,member,active,manvibabbar2,manvibabbar2,No
+Mimansa,,DeepThought,mimansamimansa07@gmail.com,Business Development,BGC Lab,FALSE,FALSE,FALSE,Artuha Paul,08/12/2025,63,1,13,10,27,member,active,mimansamimansa07,mimansamimansa07,No
+Monika Bera,,DeepThought,monikabera1804@gmail.com,Business Development,Clinics Lab,TRUE,TRUE,FALSE,Artuha Paul,07/10/2025,17,1,10,10,29,manager,active,monikabera1804,monikabera1804,Yes
+R Shreya Repakula,,DeepThought,sriya02.ritu@gmail.com,Business Development Team,Clinics Lab,FALSE,FALSE,FALSE,Artuha Paul,22/11/2025,59,1,10,17,55,member,active,sriya02.ritu,sriya02-ritu,No
+Sachdev Sonkar,,DeepThought,sachdevsonkar81@gmail.com,Telecalling,Clinics Lab,FALSE,FALSE,FALSE,Artuha Paul,10/11/2025,56,1,10,15,43,member,active,sachdevsonkar81,sachdevsonkar81,Yes
+Suhana Sharma,,DeepThought,suhanasharma074@gmail.com,Business Developer,Clinics Lab,FALSE,FALSE,FALSE,Artuha Paul,24/11/2025,57,1,10,16,58,member,active,suhanasharma074,suhanasharma074,No
+Ayush Kadbe,,DeepThought,ayushkadbe24@gmail.com,Data Champion,CRM Lab,FALSE,FALSE,FALSE,Artuha Paul,,15,1,2,9,11,member,active,ayushkadbe24,ayushkadbe24,Yes
+Shagun,,DeepThought,shagunmishra.vns@gmail.com,Web Development,CRM Lab,TRUE,TRUE,FALSE,Shagun Mishra,04/04/2025,4,1,2,3,47,manager,active,shagunmishra.vns,shagunmishra-vns,No
+SUCHINTIKA SARKAR,,DeepThought,suchintikayetheko@gmail.com,Business Analyst,CRM Lab,FALSE,FALSE,FALSE,Artuha Paul,01/12/2025,18,1,2,11,57,member,active,suchintikayetheko,suchintikayetheko,No
+Shubham Dubey,,DeepThought,shubhamdubey23042004@gmail.com,Software Developer,Delivery Lab Lead,TRUE,TRUE,FALSE,Shagun Mishra,21/04/2025,9,1,6,7,49,manager,active,shubhamdubey23042004,shubhamdubey23042004,Yes
+Alli samhitha,,DeepThought,samhitha.alli@gmail.com,Data Champion,EBR Lab,FALSE,FALSE,FALSE,Shagun Mishra,06/01/2026,64,1,4,9,45,member,active,samhitha.alli,samhitha-alli,No
+Nihal Khedekar,,DeepThought,s24_khedekar_nihal@mgmmumbai.ac.in,Data Champion,EBR Lab,FALSE,FALSE,FALSE,Artuha Paul,08/09/2025,21,1,4,9,42,member,active,s24_khedekar_nihal,s24_khedekar_nihal,No
+Sachin Patel,,DeepThought,sachinpatel43769@gmail.com,Business Growth Analyst,EBR Lab,FALSE,FALSE,FALSE,Shagun Mishra,01/11/2025,6,1,4,5,44,member,active,sachinpatel43769,sachinpatel43769,No
+Maryam,,DeepThought,maryam2xia@gmail.com,AI Content Creator,EdTeach UseCase Lab,FALSE,FALSE,FALSE,Artuha Paul,01/10/2025,12,1,5,8,26,member,active,maryam2xia,maryam2xia,No
+Syeda Faiza Mehak,,DeepThought,faizamehak2468@gmail.com,Data Champion,EdTeach UseCase Lab,FALSE,FALSE,FALSE,Shagun Mishra,24/03/2025,8,1,5,9,19,member,active,faizamehak2468,faizamehak2468,No
+Nandini Ganguly,,DeepThought,nandiniganguly2002@gmail.com,Growth culture enabler,HealTech UseCase Lab,FALSE,FALSE,FALSE,Artuha Paul,05/04/2025,20,1,12,1,31,member,active,nandiniganguly2002,nandiniganguly2002,No
+Drishti Bansal,,DeepThought,drishtibansal155@gmail.com,Business Growth Analyst,HealthTech Intrapreneur Lab Lead,TRUE,TRUE,FALSE,Artuha Paul,13/10/2025,16,1,9,5,18,manager,active,drishtibansal155,drishtibansal155,Yes
+Ananya Agrawal,,DeepThought,ananyaagrawal011@gmail.com,AI Content Creator,HealthTech UseCase Lab,FALSE,FALSE,FALSE,Artuha Paul,04/08/2025,10,1,7,8,6,member,active,ananyaagrawal011,ananyaagrawal011,No
+Artuha Paul,,DeepThought,artuhapaul2017@gmail.com,Content,HealthTech UseCase Lab,TRUE,TRUE,FALSE,Artuha Paul,,23,1,7,14,9,manager,active,artuhapaul2017,artuhapaul2017,No
+Pratik Raj,,DeepThought,rajluvkush1999@gmail.com,AI Content Creator,HealthTech UseCase Lab,FALSE,FALSE,FALSE,Artuha Paul,26/08/2025,13,1,7,8,38,member,active,rajluvkush1999,rajluvkush1999,No
+Debanjana Bej,,DeepThought,officialdbej824@gmail.com,Financial Analyst,HPF Lab,FALSE,FALSE,FALSE,Shagun Mishra,30/10/2025,3,1,1,2,36,member,active,officialdbej824,officialdbej824,No
+Farheen,,DeepThought,musarrat.farheen@gmail.com,Technical Product Manager,HPF Lab,FALSE,FALSE,FALSE,Shagun Mishra,14/10/2025,67,1,1,20,30,member,active,musarrat.farheen,musarrat-farheen,No
+Kukudala Pushya Mithra,,DeepThought,pushyamithrakukudala@gmail.com,AI Product Manager,HPF Lab,FALSE,FALSE,FALSE,Shagun Mishra,14/10/2025,66,1,1,19,37,member,active,pushyamithrakukudala,pushyamithrakukudala,No
+Maryada Jain,,DeepThought,mjainwork00@gmail.com,Growth culture enabler,HPF Lab,FALSE,FALSE,FALSE,Shagun Mishra,24/02/2025,2,1,1,1,28,member,active,mjainwork00,mjainwork00,No
+Vibhor Mehra,,DeepThought,m.vibhor557@gmail.com,Business Growth Analyst,HPF Lab,FALSE,FALSE,FALSE,Shagun Mishra,12/09/2025,7,1,1,5,24,member,active,iamkathor,iamkathor,Yes
+Suchhanda Dutta,,DeepThought,suchhanda98@gmail.com,Business Growth Analyst,K12 Intrapreneur Lab Lead,TRUE,TRUE,FALSE,Artuha Paul,,11,1,8,5,56,manager,active,suchhanda98,suchhanda98,Yes
+Aditya Chauhan,,DeepThought,adi9969584499@gmail.com,Data Champion,LIS Lab,FALSE,FALSE,FALSE,Artuha Paul,09/11/2025,14,1,3,9,3,member,active,adi9969584499,adi9969584499,No
+Ria Gulati,,DeepThought,riagulati1606@gmail.com,Behavioural Psychology Research,LIS Lab,FALSE,FALSE,FALSE,Shagun Mishra,09/10/2025,5,1,3,4,40,member,active,riagulati1606,riagulati1606,No
+Shubhangi Sharma,,DeepThought,shubhangi.sharma.ma24@nsut.ac.in,Behaviour Research,LIS Lab,FALSE,FALSE,FALSE,Artuha Paul,13/01/2026,62,1,3,18,50,member,active,shubhangi.sharma.ma24,shubhangi-sharma-ma24,No
+Abdullahi Abubakar Sadiq,,DeepThought,abdullahiasadiqdis2001@gmail.com,Business Growth Analyst,SEA Lab,FALSE,FALSE,FALSE,Artuha Paul,14/11/2025,54,1,11,5,2,member,active,abdullahiasadiqdis2001,abdullahiasadiqdis2001,No
+KAV Karthikeya,,DeepThought,kav.231me224@nitk.edu.in,Data Champion,SEA Lab,FALSE,FALSE,FALSE,Artuha Paul,05/01/2025,22,1,11,9,23,member,active,kav.231me224,kav-231me224,No
+Vikrant Yadav,,DeepThought,yadavvikrant3006@gmail.com,Business Analyst,SEA Lab,FALSE,FALSE,FALSE,Artuha Paul,01/12/2025,19,1,11,11,64,member,active,yadavvikrant3006,yadavvikrant3006,No
+Akshay Koul,,Escape Velocity,akshaykoul2030@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,41,2,15,21,5,member,active,akshaykoul2030,akshaykoul2030,Yes
+Aniruddha Shimpi,,Escape Velocity,ankitshimpi51@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Nawaz,02/06/2025,38,2,15,21,7,member,active,ankitshimpi51,ankitshimpi51,Yes
+Aritri Mondal,,Escape Velocity,aritri.mondal.am@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,40,2,15,21,8,member,active,aritri.mondal.am,aritri-mondal-am,Yes
+Austin cherian,,Escape Velocity,austincherian12@gmail.com,Rahul Somani,Escape Velocity /CO,FALSE,FALSE,FALSE,Rahul Somani,29/09/2025,51,2,15,27,1,member,active,austincherian12,austincherian12,Yes
+Nikhar Asthana,,Escape Velocity,nikharasthana@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Rahul Somani,04/07/2025,46,2,15,21,32,member,active,nikharasthana,nikharasthana,Yes
+Nikhil Sharma,,Escape Velocity,nikhilkondinya@gmail.com,Business Growth Analyst,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,39,2,15,22,33,member,active,nikhilkondinya,nikhilkondinya,Yes
+Niyati Sharma,,Escape Velocity,niyatisharma3011@gmail.com,Junior Operations Manager,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,01/06/2025,42,2,15,23,35,member,active,niyatisharma3011,niyatisharma3011,No
+Ravinder,,Escape Velocity,ravibanass2@gmail.com,Software Developer,Escape Velocity /CO,FALSE,FALSE,FALSE,Alex,05/05/2025,49,2,15,25,39,member,active,ravibanass2,ravibanass2,No
+Sandeep Mandloi,,Escape Velocity,sandeepmandloi989@gmail.com,Business Growth Analyst,Escape Velocity /CO,FALSE,FALSE,FALSE,Rahul Somani,04/10/2025,47,2,15,22,46,member,active,sandeepmandloi989,sandeepmandloi989,Yes
+Shraddha Sikarwar,,Escape Velocity,shraddhasikarwar10071999@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,43,2,15,21,48,member,active,shraddhasikarwar10071999,shraddhasikarwar10071999,No
+Siddharth Tiwari,,Escape Velocity,siddharth.tiwari_ds23fall@praxistech.school,Business Growth Analyst,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,44,2,15,22,51,member,active,siddharth.tiwari_ds23fall,siddharth-tiwari_ds23fall,Yes
+Tejas Sudhakar Bawane,,Escape Velocity,tejasbawane221@gmail.com,Web Developer,Escape Velocity /CO,FALSE,FALSE,FALSE,Alex,05/05/2025,48,2,15,24,61,member,active,tejasbawane221,tejasbawane221,No
+Topik Mulani,,Escape Velocity,topikmulani@gmail.com,Data Champion,Escape Velocity /CO,FALSE,FALSE,FALSE,Jennifer,,45,2,15,21,63,member,active,topikmulani,topikmulani,Yes
+Yash bhandari,,Escape Velocity,yashbhandari617@gmail.com,Business Analyst,Escape Velocity /CO,FALSE,FALSE,FALSE,Rahul Somani,29/09/2024,50,2,15,26,66,member,active,yashbhandari,yashbhandari,Yes
+Akshaya Oddepelly,,GoodBoy Kitchen,ak04kun@gmail.com,Social Media Growth Hacker,GoodBoy Kitchen /CO,FALSE,FALSE,FALSE,Kaushik Nooguri,09/01/2025,53,3,16,28,4,member,active,ak04kun,ak04kun,No
+Bindu Madhuri Chinnam,,Halcon Caravans,bindumadhurichinnam@gmail.com,Business Growth Analyst,Halcon Caravans /CO,FALSE,FALSE,FALSE,Hari krishna Reddy,,24,4,17,29,13,member,active,bindumadhurichinnam,bindumadhurichinnam,Yes
+Fuad Faisal p,,Halcon Caravans,fuadfaisalp@gmail.com,Manufacturing Systems Design,Halcon Caravans /CO,FALSE,FALSE,FALSE,Hari krishna Reddy,,25,4,17,30,20,member,active,fuadfaisalp,fuadfaisalp,Yes
+Tejaswini Hukkeri,,Halcon Caravans,tejuh13@gmail.com,Manufacturing Systems Design,Halcon Caravans /CO,FALSE,FALSE,FALSE,Hari krishna Reddy,28/07/2025,26,4,17,30,62,member,active,tejuh13,tejuh13,Yes
+Harish A,,Kreative Organics,harish.alakesan@gmail.com,Data Champion,Kreative Organics /CO,FALSE,FALSE,FALSE,Prasad,,35,5,18,33,21,member,active,harish.alakesan,harish-alakesan,No
+Ruthvik,,Kreative Organics,ruthvikpendiyala2806@gmail.com,Data Champion,Kreative Organics /CO,FALSE,FALSE,FALSE,Prasad,,36,5,18,33,41,member,active,ruthvikpendiyala2806,ruthvikpendiyala2806,No
+Sravan Kumar,,Kreative Organics,sravankumarmothukuri96@gmail.com,Data Champion,Kreative Organics /CO,FALSE,FALSE,FALSE,Prasad,12/01/2024,34,5,18,33,54,member,active,sravankumarmothukuri96,sravankumarmothukuri96,No
+Deepthi,,NUEST Consulting,deepthigutta4@gmail.com,Business Development,NUEST /CO,FALSE,FALSE,FALSE,Amol Pawar,15/10/2025,52,6,19,34,15,member,active,deepthigutta4,deepthigutta4,No
+Disha Talukdar,,NUEST Consulting,dishatalukdar74@gmail.com,Organizational Development Research,NUEST /CO,FALSE,FALSE,FALSE,Amol Pawar,,65,6,19,35,16,member,active,dishatalukdar74,dishatalukdar74,Yes
+Divyanshu Bawa,,PeerBrains,divyanshubawa9@gmail.com,Developer,Peerbrains /CO,FALSE,FALSE,FALSE,Muthu Kalyani,,37,7,20,36,17,member,active,divyanshubawa9,divyanshubawa9,No
+Anand Singh,,Unique Biotech,singh.anand.cs@gmail.com,Business Analyst Fellow,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,,32,8,21,40,53,member,active,singh.anand.cs,singh-anand-cs,Yes
+Appana p g s s m jayaraj,,Unique Biotech,jayarajroy524@gmail.com,Data Champion,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,21/10/2024,58,8,21,38,22,member,active,jayarajroy524,jayarajroy524,No
+Balkar Singh,,Unique Biotech,sidhubalkars06@gmail.com,Business Analyst Fellow,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,16/01/2025,31,8,21,40,52,member,active,sidhubalkars06,sidhubalkars06,Yes
+Deepesh Dey,,Unique Biotech,deepesh2005august@gmail.com,Associative Business Analyst,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,,33,8,21,37,14,member,active,deepesh2005august,deepesh2005august,No
+Dinesh Kumar,,Unique Biotech,bandidinesh3399@gmail.com,Business Analyst Fellow,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,24/09/2025,30,8,21,40,12,member,active,bandidinesh3399,bandidinesh3399,Yes
+Nitish Kumar,,Unique Biotech,nitish.ksharmaa@gmail.com,Business Growth Analyst,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,01/11/2025,29,8,21,39,34,member,active,nitish.ksharmaa,nitish-ksharmaa,No
+Peesapati Yasaswi,,Unique Biotech,yasaswi3007@gmail.com,Associative Business Analyst,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,17/03/2025,27,8,21,37,65,member,active,yasaswi3007,yasaswi3007,Yes
+Tanishka Nagawade,,Unique Biotech,taishkanagawade7@gmail.com,Data Champion,UBL /CO,FALSE,FALSE,FALSE,Shagun Mishra,,28,8,21,38,60,member,active,taishkanagawade7,taishkanagawade7,No

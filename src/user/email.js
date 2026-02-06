@@ -139,7 +139,7 @@ UserEmail.sendValidationEmail = async function (uid, options) {
 	}
 
 	const confirm_code = utils.generateUUID();
-	const confirm_link = `http://localhost:3000/auth/verify-code?email=${options.email}&type=signup&code=${confirm_code}`;
+	const confirm_link = `${nconf.get("app_url")}/auth/verify-code?email=${options.email}&type=signup&code=${confirm_code}`;
 	const username = await user.getUserField(uid, 'username');
 	const data = await plugins.hooks.fire('filter:user.verify', {
 		uid,

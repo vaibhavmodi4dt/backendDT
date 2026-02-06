@@ -6,7 +6,7 @@ const user = require('../user');
 const collections = require('../database/mongo/collections');
 const pagination = require('../pagination');
 const utils = require('../utils');
-
+const nconf = require('nconf');
 const Workspace = module.exports;
 
 // ==========================================
@@ -58,7 +58,7 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 
 	let participants = [];
 	let totalAssets = 0;
-	const assetsByType = { threadbuilder: 0 };
+	const assetsByType = { threadbuilder: 0, pitch: 0 }; // ✨ ADDED pitch
 
 	if (participantUids.length > 0) {
 		// Get user data for all participants
@@ -67,20 +67,27 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 			'uid', 'username', 'userslug', 'picture',
 		]);
 
+		// Get all threadbuilder assets
+		const threadbuilderIds = await db.getSortedSetRangeWithScores(
+			`workspace:${wsId}:assets:threadbuilder`,
+			0,
+			-1
+		);
+
+		// ✨ NEW: Get all pitch assets
+		const pitchIds = await db.getSortedSetRangeWithScores(
+			`workspace:${wsId}:assets:pitch`,
+			0,
+			-1
+		);
+
 		// Build participants array with their assets
 		participants = await Promise.all(participantUids.map(async (p, index) => {
 			const uid = parseInt(p.value, 10);
 			const joinedAt = parseInt(p.score, 10);
 
-			// Get assets for this participant
-			const threadbuilderIds = await db.getSortedSetRangeWithScores(
-				`workspace:${wsId}:assets:threadbuilder`,
-				0,
-				-1
-			);
-
-			// Filter assets owned by this user
-			const userAssets = await Promise.all(
+			// Get threadbuilder assets for this user
+			const threadbuilderAssets = await Promise.all(
 				threadbuilderIds.map(async (asset) => {
 					const assetMeta = await db.getObject(
 						`workspace:${wsId}:asset:threadbuilder:${asset.value}`
@@ -95,9 +102,30 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 				})
 			);
 
-			const threadbuilderAssets = userAssets.filter(Boolean);
-			totalAssets += threadbuilderAssets.length;
-			assetsByType.threadbuilder += threadbuilderAssets.length;
+			const userThreadbuilders = threadbuilderAssets.filter(Boolean);
+
+			// ✨ NEW: Get pitch assets for this user
+			const pitchAssets = await Promise.all(
+				pitchIds.map(async (asset) => {
+					const assetMeta = await db.getObject(
+						`workspace:${wsId}:asset:pitch:${asset.value}`
+					);
+					if (assetMeta && parseInt(assetMeta.uid, 10) === uid) {
+						return {
+							id: asset.value,
+							linkedAt: parseInt(assetMeta.linkedAt, 10),
+						};
+					}
+					return null;
+				})
+			);
+
+			const userPitches = pitchAssets.filter(Boolean);
+
+			// Update totals
+			totalAssets += userThreadbuilders.length + userPitches.length;
+			assetsByType.threadbuilder += userThreadbuilders.length;
+			assetsByType.pitch += userPitches.length;
 
 			return {
 				uid: uid,
@@ -107,7 +135,8 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 				joinedAt: joinedAt,
 				isCreator: uid === parseInt(workspaceData.uid, 10),
 				assets: {
-					threadbuilder: threadbuilderAssets,
+					threadbuilder: userThreadbuilders,
+					pitch: userPitches, // ✨ NEW
 				},
 			};
 		}));
@@ -123,10 +152,11 @@ Workspace.buildWorkspaceResponse = async (wsId, workspaceData) => {
 		endTime: workspaceData.endTime,
 		status: status,
 		inviteToken: workspaceData.inviteToken,
-		inviteLink: `http://localhost:3000/workspace/join/${workspaceData.inviteToken}`,
-		settings: workspaceData.settings || {
-			maxParticipants: null,
-			allowAssetSharing: true,
+		inviteLink: `${nconf.get("app_url")}/workspace/join/${workspaceData.inviteToken}`,
+		settings: {
+			maxParticipants: workspaceData.settings?.maxParticipants || null,
+			allowAssetSharing: workspaceData.settings?.allowAssetSharing !== false,
+			maxPitches: workspaceData.settings?.maxPitches || null, // ✨ NEW
 		},
 		participants: participants,
 		stats: {
@@ -168,6 +198,7 @@ Workspace.create = async (caller, data) => {
 		settings: {
 			maxParticipants: settings?.maxParticipants || null,
 			allowAssetSharing: settings?.allowAssetSharing !== false,
+			maxPitches: settings?.maxPitches || null, // ✨ NEW
 		},
 		createdAt: timestamp,
 		updatedAt: timestamp,
@@ -524,6 +555,13 @@ Workspace.delete = async (caller, data) => {
 		-1
 	);
 
+	// ✨ NEW: Get all pitch assets
+	const pitchIds = await db.getSortedSetRange(
+		`workspace:${wsId}:assets:pitch`,
+		0,
+		-1
+	);
+
 	// Prepare bulk delete operations
 	const deleteOps = [
 		db.delete(`workspace:${wsId}`, { collection: collections.WORKSPACES }),
@@ -533,6 +571,7 @@ Workspace.delete = async (caller, data) => {
 		db.sortedSetRemove(`uid:${caller.uid}:workspaces:created`, wsId),
 		db.delete(`workspace:${wsId}:participants`),
 		db.delete(`workspace:${wsId}:assets:threadbuilder`),
+		db.delete(`workspace:${wsId}:assets:pitch`), // ✨ NEW
 	];
 
 	// Remove from all participants' joined lists
@@ -540,9 +579,14 @@ Workspace.delete = async (caller, data) => {
 		deleteOps.push(db.sortedSetRemove(`uid:${uid}:workspaces:joined`, wsId));
 	});
 
-	// Delete all asset metadata
+	// Delete all threadbuilder asset metadata
 	threadbuilderIds.forEach((tbId) => {
 		deleteOps.push(db.delete(`workspace:${wsId}:asset:threadbuilder:${tbId}`));
+	});
+
+	// ✨ NEW: Delete all pitch asset metadata
+	pitchIds.forEach((pitchId) => {
+		deleteOps.push(db.delete(`workspace:${wsId}:asset:pitch:${pitchId}`));
 	});
 
 	await Promise.all(deleteOps);
@@ -709,13 +753,56 @@ Workspace.linkAsset = async (caller, data) => {
 		throw new Error('[[error:asset-sharing-disabled]]');
 	}
 
-	// Verify asset exists and user owns it (only for threadbuilder currently)
+	// Verify asset exists and user owns it
 	if (assetType === 'threadbuilder') {
 		const threadbuilder = require('./threadbuilder');
 		let assetData;
 
 		try {
 			assetData = await threadbuilder.get(caller, { id: assetId });
+		} catch (err) {
+			throw new Error('[[error:asset-not-found]]');
+		}
+
+		// Verify ownership
+		if (parseInt(assetData.uid, 10) !== parseInt(caller.uid, 10)) {
+			throw new Error('[[error:not-asset-owner]]');
+		}
+	}
+
+	// ✨ NEW: Handle pitch asset type
+	if (assetType === 'pitch') {
+		// Check pitch limit
+		const maxPitches = workspaceData.settings?.maxPitches;
+		if (maxPitches !== null && maxPitches !== undefined) {
+			// Count existing pitches for this user
+			const allPitchIds = await db.getSortedSetRange(
+				`workspace:${wsId}:assets:pitch`,
+				0,
+				-1
+			);
+
+			let userPitchCount = 0;
+			for (const pitchId of allPitchIds) {
+				const pitchMeta = await db.getObject(
+					`workspace:${wsId}:asset:pitch:${pitchId}`
+				);
+				if (pitchMeta && parseInt(pitchMeta.uid, 10) === parseInt(caller.uid, 10)) {
+					userPitchCount++;
+				}
+			}
+
+			if (userPitchCount >= maxPitches) {
+				throw new Error('[[error:max-pitches-reached]]');
+			}
+		}
+
+		// Verify pitch exists and user owns it
+		const pitch = require('./pitch');
+		let assetData;
+
+		try {
+			assetData = await pitch.get(caller, { id: assetId });
 		} catch (err) {
 			throw new Error('[[error:asset-not-found]]');
 		}

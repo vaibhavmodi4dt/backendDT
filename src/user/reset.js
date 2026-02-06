@@ -53,7 +53,7 @@ UserReset.send = async function (email) {
 		await db.sortedSetAdd('reset:issueDate:uid', Date.now(), uid);
 		const code = await UserReset.generate(uid);
 		await emailer.send('reset', uid, {
-			reset_link: `${nconf.get('url')}/reset/${code}`,
+			reset_link: `${nconf.get('app_url')}/auth/reset-password?code=${code}&email=${email}`,
 			subject: '[[email:password-reset-requested]]',
 			template: 'reset',
 			uid: uid,
