@@ -210,7 +210,7 @@ module.exports = function (module) {
 			title: data.title,
 			description: data.description || null,
 			hypothesis: data.hypothesis || null,
-			status: data.status || 'draft',
+		status: data.status || 'pending_review',
 			impactScore: data.impactScore || null,
 			confidenceScore: data.confidenceScore || null,
 			easeScore: data.easeScore || null,
