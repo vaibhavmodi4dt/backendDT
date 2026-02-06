@@ -4,6 +4,7 @@ const winston = require('winston');
 const cacheCreate = require('../cache/lru');
 const Organizations = require('../organizations');
 const helpers = require('./helpers');
+const db = require("../database")
 
 /**
  * Cache for organization context to avoid repeated database lookups
@@ -55,7 +56,7 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 
 			// Get organization data and permissions
 			if (orgId) {
-				context.organisation = await Organizations.getOrganization(orgId);
+				context.organisation = await db.getOrganization(orgId);
 
 				if (context.organisation) {
 					// Get user permissions in this organization

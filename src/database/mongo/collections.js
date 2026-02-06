@@ -9,7 +9,8 @@ const collections = {
     RECOGNITION_QUESTIONS: 'recognition_questions',
     RECOGNITION_ANSWERS: 'recognition_answers',
     RECOGNITION_ASSIGNMENTS: 'recognition_assignments',
-    SUPERVISOR: "supervisor"
+    SUPERVISOR: "supervisor",
+    SD_PITCHES: "sd_pitches"
 };
 
 module.exports = { collections };
