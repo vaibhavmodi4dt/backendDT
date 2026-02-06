@@ -35,21 +35,8 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 	const deptId = req.headers['x-department-id'] || req.headers['X-Department-Id'];
 	const userId = req.headers['x-user-id'] || req.headers['X-User-Id'];
 
-	console.log('🔍 [organizationContext] Middleware called:', {
-		path: req.path,
-		method: req.method,
-		headers: {
-			'x-organization-id': orgId,
-			'x-department-id': deptId,
-			'x-user-id': userId,
-		},
-		'req.uid': req.uid,
-		'req.user': req.user ? { uid: req.user.uid } : null,
-	});
-
 	// If no organization header, skip this middleware
 	if (!orgId) {
-		console.log('⚠️  [organizationContext] No organization header, skipping');
 		return next();
 	}
 
@@ -60,71 +47,42 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 		// Try to get from cache first
 		let context = contextCache.get(cacheKey);
 
-		if (context) {
-			console.log('✅ [organizationContext] Using cached context:', {
-				cacheKey,
-				hasOrganisation: !!context.organisation,
-				orgId: context.organisation?.orgId,
-			});
-		} else {
-			console.log('🔄 [organizationContext] Cache miss, fetching fresh data');
+		if (!context) {
 			// Fetch fresh data
 			context = {};
 
 			const uid = userId || req.uid;
-			console.log('🔍 [organizationContext] Resolved uid:', uid, `(from ${userId ? 'header' : 'req.uid'})`);
 
 			// Get organization data and permissions
 			if (orgId) {
-				console.log('🔍 [organizationContext] Fetching organization:', orgId);
 				context.organisation = await db.getOrganization(orgId);
 
 				if (context.organisation) {
-					console.log('✅ [organizationContext] Organization found:', {
-						orgId: context.organisation.orgId,
-						name: context.organisation.name,
-					});
-
 					// Get user permissions in this organization
-					console.log('🔍 [organizationContext] Fetching permissions for uid:', uid);
 					context.organisation.permissions = {
 						isMember: await Organizations.isMember(orgId, uid),
 						isManager: await Organizations.isManager(orgId, uid),
 						isLeader: await Organizations.isLeader(orgId, uid),
 					};
 
-					console.log('✅ [organizationContext] Permissions:', context.organisation.permissions);
-
 					// Get user membership in this organization
 					const memberships = await Organizations.getUserMembershipInOrganization(orgId, uid);
 					if (memberships && memberships.length > 0) {
 						context.organisation.membership = memberships[0];
-						console.log('✅ [organizationContext] Membership found:', {
-							membershipId: memberships[0].membershipId,
-							type: memberships[0].type,
-						});
-					} else {
-						console.log('⚠️  [organizationContext] No membership found for uid:', uid);
 					}
-				} else {
-					console.log('❌ [organizationContext] Organization NOT found:', orgId);
 				}
 			}
 
 			// Get department data and permissions
 			if (deptId) {
-				console.log('🔍 [organizationContext] Fetching department:', deptId);
 				context.department = await Organizations.getDepartment(deptId);
 
 				if (context.department) {
-					console.log('✅ [organizationContext] Department found:', context.department.departmentId);
 					// Get user permissions in this department
 					context.department.permissions = {
 						isMember: await Organizations.isDepartmentMember(deptId, uid),
 						isManager: await Organizations.isDepartmentManager(deptId, uid),
 					};
-				} else {
-					console.log('❌ [organizationContext] Department NOT found:', deptId);
 				}
 			}
 
@@ -136,7 +94,6 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 			}
 
 			// Cache the context
-			console.log('💾 [organizationContext] Caching context:', cacheKey);
 			contextCache.set(cacheKey, context);
 		}
 
@@ -144,15 +101,6 @@ Middleware.organizationContext = helpers.try(async (req, res, next) => {
 		req.organisation = context.organisation;
 		req.department = context.department;
 		req.user = context.user;
-
-		console.log('✅ [organizationContext] Attached to request:', {
-			'req.organisation': req.organisation ? {
-				orgId: req.organisation.orgId,
-				name: req.organisation.name,
-			} : null,
-			'req.department': req.department ? req.department.departmentId : null,
-			'req.user': req.user,
-		});
 
 		next();
 	} catch (err) {
