@@ -47,6 +47,7 @@ Reports.submitLogout = Reports.daily.submitLogout;
 Reports.getCount = Reports.daily.getCount;
 
 // ==========================================
+// ==========================================
 // WEEKLY REPORTS (EXISTING)
 // ==========================================
 
@@ -78,6 +79,15 @@ Reports.updateReportEvaluation = Reports.weekly.updateReportEvaluation;
 
 // Submit final report
 Reports.submitReportEvaluation = Reports.weekly.submitReportEvaluation;
+
+// Fetch daily reports for week
+Reports.fetchDailyReports = Reports.weekly.fetchDailyReports;
+
+// Generate for single user
+Reports.generateForUser = Reports.weekly.generateForUser;
+
+// Transform AI response to insights format
+Reports.transformAiResponseToInsights = Reports.weekly.transformAiResponseToInsights;
 
 // ==========================================
 // HELPERS

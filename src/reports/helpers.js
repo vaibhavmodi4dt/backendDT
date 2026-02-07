@@ -192,14 +192,13 @@ helpers.getWeekStartDate = function (date) {
 };
 
 /**
- * Get array of 6 dates (Mon-Sat) from week start
- * Updated to return 6 days instead of 7
+ * Get array of 7 dates (Mon-Sun) from week start
  */
 helpers.getWeekDates = function (weekStart) {
     const dates = [];
     const start = new Date(weekStart);
 
-    for (let i = 0; i < 6; i++) { // Changed from 7 to 6
+    for (let i = 0; i < 7; i++) { // 7 days: Monday to Sunday
         const date = new Date(start);
         date.setDate(start.getDate() + i);
 

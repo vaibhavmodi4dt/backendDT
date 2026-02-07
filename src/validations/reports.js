@@ -246,3 +246,8 @@ DailyReport.updateWeeklyReportEvaluation = z.object({
 DailyReport.submitWeeklyReportEvaluation = z.object({
     weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
 });
+
+// GET WEEKLY INSIGHTS
+DailyReport.getWeeklyInsights = z.object({
+    weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
+});

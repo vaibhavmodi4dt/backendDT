@@ -104,7 +104,7 @@ WeeklyReports.updateWeekly = async function (uid, weekStart, updates) {
 };
 
 // ==========================================
-// GET WEEKLY REPORT (6-day aggregation)
+// GET WEEKLY REPORT (7-day aggregation)
 // ==========================================
 WeeklyReports.getReport = async function (uid, weekDates) {
     const days = [];
@@ -134,7 +134,7 @@ WeeklyReports.getReport = async function (uid, weekDates) {
 
     return {
         startDate: weekDates[0],
-        endDate: weekDates[5],
+        endDate: weekDates[6], // Sunday (7th day)
         days,
     };
 };
@@ -177,16 +177,92 @@ WeeklyReports.callAiEvaluation = async function (dailyReports) {
 // ==========================================
 // SAVE WEEKLY REPORT EVALUATION
 // ==========================================
+
+/**
+ * Transform AI agent response to insights format
+ * 
+ * AI Agent Format (detailed):
+ *   { planVsActual, bottlenecksAndInsights, ipToolsTemplates, externalExploration, summary, highlights, escalations, suggestions }
+ * 
+ * Insights Format (user-friendly):
+ *   { weekAtGlance, highlights, blockers, carryForward, userFeedback }
+ */
+WeeklyReports.transformAiResponseToInsights = function (aiResponse) {
+    if (!aiResponse || typeof aiResponse !== 'object') {
+        return {
+            weekAtGlance: '',
+            highlights: '',
+            blockers: '',
+            carryForward: '',
+            userFeedback: '',
+        };
+    }
+
+    console.log('[transform] AI Response keys:', Object.keys(aiResponse));
+    console.log('[transform] bottlenecksAndInsights:', aiResponse.bottlenecksAndInsights);
+
+    // Extract from AI response - handle both formats
+    const summary = aiResponse.summary || '';
+    const highlights = aiResponse.highlights || aiResponse.suggestions || '';
+    const escalations = aiResponse.escalations || '';
+    
+    // Extract blockers from bottlenecksAndInsights
+    const bottlenecks = aiResponse.bottlenecksAndInsights || {};
+    
+    // Handle blockers - could be array, object with nested arrays, or string
+    let blockersList = '';
+    if (bottlenecks.blockers) {
+        if (Array.isArray(bottlenecks.blockers)) {
+            // Array of strings
+            blockersList = bottlenecks.blockers.map(b => typeof b === 'string' ? b : (b.text || b)).join('\n• ');
+        } else if (typeof bottlenecks.blockers === 'object') {
+            // Could be {executional: [], emotional: []}
+            const executional = Array.isArray(bottlenecks.blockers.executional) 
+                ? bottlenecks.blockers.executional.join('\n• ') 
+                : '';
+            const emotional = Array.isArray(bottlenecks.blockers.emotional) 
+                ? bottlenecks.blockers.emotional.join('\n• ') 
+                : '';
+            blockersList = [executional, emotional].filter(b => b).join('\n• ');
+        } else if (typeof bottlenecks.blockers === 'string') {
+            blockersList = bottlenecks.blockers;
+        }
+    }
+    
+    console.log('[transform] Extracted blockers:', blockersList);
+    
+    // Extract carry-forward from responseAndResolution
+    const responseAndResolution = bottlenecks.responseAndResolution || [];
+    const carryForward = Array.isArray(responseAndResolution) && responseAndResolution.length > 0
+        ? responseAndResolution.map(item => `• ${typeof item === 'string' ? item : (item.text || item)}`).join('\n')
+        : (escalations || '');
+
+    return {
+        weekAtGlance: summary,
+        highlights: (highlights || '').replace(/^[•\-\*\s]+/, ''), // Remove leading bullet if present
+        blockers: blockersList ? `• ${blockersList}` : '',
+        carryForward: carryForward,
+        userFeedback: '',
+    };
+};
+
 WeeklyReports.saveReportEvaluation = async function (uid, weekStart, generatedReport, existing) {
     const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
     const currentTime = utils.toISOString(utils.date.now());
     const timestamp = utils.date.now();
 
+    // Transform AI response to insights format if possible
+    let insightsData = generatedReport;
+    if (generatedReport && generatedReport.planVsActual) {
+        // This is AI agent format, transform it
+        insightsData = WeeklyReports.transformAiResponseToInsights(generatedReport);
+    }
+
     await db.setObject(key, {
         uid,
         weekStart,
         week: helpers.getWeekNumber(weekStart),
-        generatedReport,
+        generatedReport: insightsData,
         editedReport: existing?.editedReport || null,
         status: existing?.status || 'draft',
         submittedAt: existing?.submittedAt || null,
@@ -204,7 +280,7 @@ WeeklyReports.saveReportEvaluation = async function (uid, weekStart, generatedRe
         uid,
         weekStart,
         week: helpers.getWeekNumber(weekStart),
-        generatedReport,
+        generatedReport: insightsData,
         editedReport: existing?.editedReport || null,
         status: existing?.status || 'draft',
         submittedAt: existing?.submittedAt || null,

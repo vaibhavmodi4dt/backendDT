@@ -198,3 +198,17 @@ Reports.updateWeeklyReportEvaluation = async function (req, res) {
 Reports.submitWeeklyReportEvaluation = async function (req, res) {
     helpers.formatApiResponse(200, res, await api.reports.submitWeeklyReportEvaluation(req, req.body));
 };
+
+/**
+ * GET /api/v3/reports/weekly/insights
+ * Get AI-generated insights and submission status for a week
+ */
+Reports.getWeeklyInsights = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.getWeeklyInsights(req, {
+        weekStart: req.query.weekStart,
+    }));
+};
+
+// database 
+// report:daily:user:{uid}:{date}
+// _key: report:daily:user:{uid}:{date}

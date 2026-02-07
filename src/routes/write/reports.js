@@ -206,5 +206,14 @@ module.exports = function () {
         controllers.write.reports.submitWeeklyReportEvaluation
     );
 
+    // Get weekly insights
+    setupApiRoute(
+        router,
+        'get',
+        '/weekly/insights',
+        [...middlewares, validate.query(schemas.reports.getWeeklyInsights)],
+        controllers.write.reports.getWeeklyInsights
+    );
+
     return router;
 };
