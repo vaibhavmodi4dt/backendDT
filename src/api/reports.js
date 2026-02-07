@@ -325,6 +325,10 @@ reportsApi.updateWeeklyPlan = async function (caller, data) {
  * POST /api/v3/reports/weekly/report/generate
  */
 reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start
     const anchor = data.date ? new Date(data.date) : new Date();
     const weekStart = Reports.helpers.getWeekStartDate(anchor);
@@ -442,13 +446,17 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
  * GET /api/v3/reports/weekly/report/evaluation
  */
 reportsApi.getWeeklyReportEvaluation = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start - always normalize to Monday
     const anchor = data.weekStart ? new Date(data.weekStart) : new Date();
     const weekStartDate = Reports.helpers.getWeekStartDate(anchor);
     const weekStart = weekStartDate.toISOString().split('T')[0];
 
-    // Fetch from user weekly reports (new key pattern)
-    let entry = await Reports.getUserWeeklyReport(caller.uid, weekStart);
+    // Fetch from evaluation storage (not user reports)
+    let entry = await Reports.getReportEvaluation(caller.uid, weekStart);
 
     // Validate entry exists
     if (!entry) {
@@ -464,6 +472,10 @@ reportsApi.getWeeklyReportEvaluation = async function (caller, data) {
  * PUT /api/v3/reports/weekly/report/evaluation
  */
 reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start - always normalize to Monday
     const anchor = data.weekStart ? new Date(data.weekStart) : new Date();
     const weekStartDate = Reports.helpers.getWeekStartDate(anchor);
@@ -493,6 +505,10 @@ reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
  * POST /api/v3/reports/weekly/report/submit
  */
 reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start - always normalize to Monday
     const anchor = data.weekStart ? new Date(data.weekStart) : new Date();
     const weekStartDate = Reports.helpers.getWeekStartDate(anchor);
@@ -564,6 +580,10 @@ reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
  * GET /api/v3/reports/weekly/insights
  */
 reportsApi.getWeeklyInsights = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start
     const anchor = data.weekStart ? new Date(data.weekStart) : new Date();
     const weekStart = Reports.helpers.getWeekStartDate(anchor);
@@ -613,11 +633,6 @@ reportsApi.getWeeklyInsights = async function (caller, data) {
         }
     }
 
-    // Verify entry exists
-    if (!entry) {
-        throw new Error('[[error:no-weekly-evaluation-found]]');
-    }
-
     // Extract insights from user report (new format)
     const insights = entry.insights || entry.generatedReport || {
         weekAtGlance: '',
@@ -646,6 +661,10 @@ reportsApi.getWeeklyInsights = async function (caller, data) {
  * GET /api/v3/reports/weekly/report
  */
 reportsApi.getWeeklyReport = async function (caller, data) {
+    if (!caller.uid) {
+        throw new Error('[[error:not-logged-in]]');
+    }
+
     // Determine week start
     const anchor = data.date ? new Date(data.date) : new Date();
     const weekStart = Reports.helpers.getWeekStartDate(anchor);
