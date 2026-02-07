@@ -123,7 +123,7 @@ Reports.submitLogout = async function (req, res) {
 };
 
 // ==========================================
-// WEEKLY REPORTS
+// WEEKLY REPORTS (EXISTING)
 // ==========================================
 
 /**
@@ -151,9 +151,64 @@ Reports.updateWeeklyPlan = async function (req, res) {
 
 /**
  * GET /api/v3/reports/weekly/report
+ * Returns raw 6-day aggregation
  */
 Reports.getWeeklyReport = async function (req, res) {
     helpers.formatApiResponse(200, res, await api.reports.getWeeklyReport(req, {
         date: req.query.date,
     }));
 };
+
+// ==========================================
+// WEEKLY REPORT EVALUATION (NEW)
+// ==========================================
+
+/**
+ * POST /api/v3/reports/weekly/report/generate
+ * Generate AI-evaluated weekly report
+ */
+Reports.generateWeeklyReportEvaluation = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.generateWeeklyReportEvaluation(req, {
+        date: req.body.date,
+    }));
+};
+
+/**
+ * GET /api/v3/reports/weekly/report/evaluation
+ * Get existing weekly report evaluation
+ */
+Reports.getWeeklyReportEvaluation = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.getWeeklyReportEvaluation(req, {
+        weekStart: req.query.weekStart,
+    }));
+};
+
+/**
+ * PUT /api/v3/reports/weekly/report/evaluation
+ * Update weekly report evaluation (user edits)
+ */
+Reports.updateWeeklyReportEvaluation = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.updateWeeklyReportEvaluation(req, req.body));
+};
+
+/**
+ * POST /api/v3/reports/weekly/report/submit
+ * Submit final weekly report evaluation
+ */
+Reports.submitWeeklyReportEvaluation = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.submitWeeklyReportEvaluation(req, req.body));
+};
+
+/**
+ * GET /api/v3/reports/weekly/insights
+ * Get AI-generated insights and submission status for a week
+ */
+Reports.getWeeklyInsights = async function (req, res) {
+    helpers.formatApiResponse(200, res, await api.reports.getWeeklyInsights(req, {
+        weekStart: req.query.weekStart,
+    }));
+};
+
+// database 
+// report:daily:user:{uid}:{date}
+// _key: report:daily:user:{uid}:{date}

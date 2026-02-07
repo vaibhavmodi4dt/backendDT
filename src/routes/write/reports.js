@@ -127,7 +127,7 @@ module.exports = function () {
     );
 
     // ==========================================
-    // WEEKLY REPORTS (NEW)
+    // WEEKLY REPORTS (EXISTING)
     // ==========================================
 
     // Submit weekly plan
@@ -157,13 +157,62 @@ module.exports = function () {
         controllers.write.reports.updateWeeklyPlan
     );
 
-    // Get weekly report (7-day aggregation)
+    // Get weekly report (6-day aggregation - raw data)
     setupApiRoute(
         router,
         'get',
         '/weekly/report',
         [...middlewares, validate.query(schemas.reports.getWeeklyReport)],
         controllers.write.reports.getWeeklyReport
+    );
+
+    // ==========================================
+    // WEEKLY REPORT EVALUATION (NEW)
+    // ==========================================
+
+    // Generate AI-evaluated weekly report
+    setupApiRoute(
+        router,
+        'post',
+        '/weekly/report/generate',
+        [...middlewares, validate.body(schemas.reports.generateWeeklyReportEvaluation)],
+        controllers.write.reports.generateWeeklyReportEvaluation
+    );
+
+    // Get existing weekly report evaluation
+    setupApiRoute(
+        router,
+        'get',
+        '/weekly/report/evaluation',
+        [...middlewares, validate.query(schemas.reports.getWeeklyReportEvaluation)],
+        controllers.write.reports.getWeeklyReportEvaluation
+    );
+
+    // Update weekly report evaluation (user edits)
+    setupApiRoute(
+        router,
+        'put',
+        '/weekly/report/evaluation',
+        [...middlewares, validate.body(schemas.reports.updateWeeklyReportEvaluation)],
+        controllers.write.reports.updateWeeklyReportEvaluation
+    );
+
+    // Submit final weekly report
+    setupApiRoute(
+        router,
+        'post',
+        '/weekly/report/submit',
+        [...middlewares, validate.body(schemas.reports.submitWeeklyReportEvaluation)],
+        controllers.write.reports.submitWeeklyReportEvaluation
+    );
+
+    // Get weekly insights
+    setupApiRoute(
+        router,
+        'get',
+        '/weekly/insights',
+        [...middlewares, validate.query(schemas.reports.getWeeklyInsights)],
+        controllers.write.reports.getWeeklyInsights
     );
 
     return router;
