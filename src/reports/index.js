@@ -90,6 +90,15 @@ Reports.generateForUser = Reports.weekly.generateForUser;
 Reports.transformAiResponseToInsights = Reports.weekly.transformAiResponseToInsights;
 
 // ==========================================
+// USER WEEKLY REPORTS (SEPARATE FROM EVALUATION)
+// ==========================================
+
+Reports.saveUserWeeklyReport = Reports.weekly.saveUserWeeklyReport;
+Reports.getUserWeeklyReport = Reports.weekly.getUserWeeklyReport;
+Reports.updateUserWeeklyReport = Reports.weekly.updateUserWeeklyReport;
+Reports.submitUserWeeklyReport = Reports.weekly.submitUserWeeklyReport;
+
+// ==========================================
 // HELPERS
 // ==========================================
 

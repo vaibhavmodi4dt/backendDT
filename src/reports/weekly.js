@@ -503,8 +503,8 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
         return { skipped: true, reason: 'no_daily_reports' };
     }
 
-    // Check if already exists
-    const existing = await WeeklyReports.getReportEvaluation(uid, weekStartStr);
+    // Check if already exists (use new user report key)
+    const existing = await WeeklyReports.getUserWeeklyReport(uid, weekStartStr);
 
     // Skip if already submitted
     if (existing && existing.status === 'submitted') {
@@ -516,7 +516,7 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
     try {
         aiResponse = await WeeklyReports.callAiEvaluation(dailyReports);
     } catch (error) {
-        if (existing && existing.generatedReport) {
+        if (existing && existing.insights) {
             return { skipped: true, reason: 'cached', cached: true };
         }
         throw new Error(`AI service failed: ${error.message}`);
@@ -524,14 +524,14 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
 
     // Validate response
     if (!aiResponse || !aiResponse.success || !aiResponse.data) {
-        if (existing && existing.generatedReport) {
+        if (existing && existing.insights) {
             return { skipped: true, reason: 'cached', cached: true };
         }
         throw new Error('AI returned invalid response');
     }
 
-    // Save
-    await WeeklyReports.saveReportEvaluation(
+    // Save using new user weekly report function
+    await WeeklyReports.saveUserWeeklyReport(
         uid,
         weekStartStr,
         aiResponse.data,
@@ -620,5 +620,138 @@ WeeklyReports.getSchedulerStatus = function () {
             schedule: '0 23 * * 0',
             description: 'Every Sunday at 11:00 PM',
         },
+    };
+};
+
+// ==========================================
+// USER WEEKLY REPORTS (SEPARATE FROM EVALUATION)
+// ==========================================
+
+/**
+ * Save user-friendly weekly report with insights
+ * Uses separate key pattern: reports:weekly:user:{uid}:{weekStart}
+ * Does NOT interfere with supervisor dashboard data
+ */
+WeeklyReports.saveUserWeeklyReport = async function (uid, weekStart, generatedReport, existing) {
+    const key = helpers.getWeeklyReportKey(uid, weekStart);  // Uses reports:weekly:user:{uid}:{weekStart}
+    const currentTime = utils.toISOString(utils.date.now());
+    const timestamp = utils.date.now();
+
+    // Transform AI response to user-friendly insights format
+    let insights = generatedReport;
+    if (generatedReport && generatedReport.planVsActual) {
+        insights = WeeklyReports.transformAiResponseToInsights(generatedReport);
+    }
+
+    await db.setObject(key, {
+        uid,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        insights: insights,  // User-friendly format
+        editedReport: existing?.editedReport || null,
+        status: existing?.status || 'draft',
+        submittedAt: existing?.submittedAt || null,
+        createdAt: existing?.createdAt || currentTime,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    // Update indexes
+    await Promise.all([
+        db.sortedSetAdd(`user:${uid}:reports:weekly`, timestamp, key),
+        db.sortedSetAdd(`reports:weekly:weekStart:${weekStart}`, timestamp, key),
+    ].filter(Boolean));
+
+    return {
+        uid,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        insights: insights,
+        editedReport: existing?.editedReport || null,
+        status: existing?.status || 'draft',
+        submittedAt: existing?.submittedAt || null,
+        createdAt: existing?.createdAt || currentTime,
+        updatedAt: currentTime,
+    };
+};
+
+/**
+ * Get user weekly report
+ */
+WeeklyReports.getUserWeeklyReport = async function (uid, weekStart) {
+    const key = helpers.getWeeklyReportKey(uid, weekStart);
+    return await db.getObject(key, [], reportsCollection);
+};
+
+/**
+ * Update user weekly report
+ */
+WeeklyReports.updateUserWeeklyReport = async function (uid, weekStart, editedReport) {
+    const key = helpers.getWeeklyReportKey(uid, weekStart);
+    const currentTime = utils.toISOString(utils.date.now());
+
+    const existing = await db.getObject(key, [], reportsCollection);
+
+    await db.setObject(key, {
+        ...existing,
+        editedReport,
+        uid,
+        weekStart,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    return {
+        ok: true,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        updatedAt: currentTime,
+    };
+};
+
+/**
+ * Submit user weekly report
+ * Accepts optional submittedInsights to merge into insights during submission
+ */
+WeeklyReports.submitUserWeeklyReport = async function (uid, weekStart, submittedInsights) {
+    const key = helpers.getWeeklyReportKey(uid, weekStart);
+    const currentTime = utils.toISOString(utils.date.now());
+    const timestamp = utils.date.now();
+
+    const existing = await db.getObject(key, [], reportsCollection);
+
+    // Merge insights: prioritize submitted insights, fallback to editedReport, then existing
+    let insights = existing.insights || {};
+
+    // First check if insights were provided in submission
+    if (submittedInsights && submittedInsights.userFeedback) {
+        insights = {
+            ...insights,
+            ...submittedInsights,  // Merge all submitted insights
+        };
+    } else if (existing.editedReport && existing.editedReport.userFeedback) {
+        // Fallback: merge from editedReport if no submitted insights
+        insights = {
+            ...insights,
+            userFeedback: existing.editedReport.userFeedback,
+        };
+    }
+
+    await db.setObject(key, {
+        ...existing,
+        insights,
+        editedReport: null, // Clear after submission
+        status: 'submitted',
+        submittedAt: currentTime,
+        updatedAt: currentTime,
+    }, reportsCollection);
+
+    // Update submitted index
+    await db.sortedSetAdd(`user:${uid}:reports:weekly:submitted`, timestamp, key);
+
+    return {
+        ok: true,
+        weekStart,
+        week: helpers.getWeekNumber(weekStart),
+        status: 'submitted',
+        submittedAt: currentTime,
     };
 };

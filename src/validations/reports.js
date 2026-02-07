@@ -245,7 +245,7 @@ DailyReport.updateWeeklyReportEvaluation = z.object({
 // SUBMIT WEEKLY REPORT EVALUATION
 DailyReport.submitWeeklyReportEvaluation = z.object({
     weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
-});
+}).passthrough(); // Allow extra fields like insights from frontend
 
 // GET WEEKLY INSIGHTS
 DailyReport.getWeeklyInsights = z.object({
