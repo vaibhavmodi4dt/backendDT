@@ -65,8 +65,8 @@ Reports.getWeeklyReport = Reports.weekly.getReport;
 // WEEKLY REPORT EVALUATION (NEW)
 // ==========================================
 
-// Generate AI-evaluated weekly report
-Reports.generateWeeklyReportEvaluation = Reports.weekly.generateReportEvaluation;
+// Call AI evaluation
+Reports.callAiEvaluation = Reports.weekly.callAiEvaluation;
 
 // Get existing evaluation
 Reports.getReportEvaluation = Reports.weekly.getReportEvaluation;

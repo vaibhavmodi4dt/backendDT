@@ -1,6 +1,5 @@
 'use strict';
 
-const _ = require('lodash');
 const winston = require('winston');
 const { CronJob } = require('cron');
 
@@ -198,9 +197,6 @@ WeeklyReports.transformAiResponseToInsights = function (aiResponse) {
         };
     }
 
-    console.log('[transform] AI Response keys:', Object.keys(aiResponse));
-    console.log('[transform] bottlenecksAndInsights:', aiResponse.bottlenecksAndInsights);
-
     // Extract from AI response - handle both formats
     const summary = aiResponse.summary || '';
     const highlights = aiResponse.highlights || aiResponse.suggestions || '';
@@ -228,8 +224,6 @@ WeeklyReports.transformAiResponseToInsights = function (aiResponse) {
             blockersList = bottlenecks.blockers;
         }
     }
-    
-    console.log('[transform] Extracted blockers:', blockersList);
     
     // Extract carry-forward from responseAndResolution
     const responseAndResolution = bottlenecks.responseAndResolution || [];
@@ -364,7 +358,7 @@ WeeklyReports.startScheduler = function () {
     winston.verbose('[reports:weekly] Starting scheduled jobs.');
 
     // Generate weekly reports every Sunday at 11:00 PM
-    new CronJob('7 11 * * 0', async () => {
+    new CronJob('0 23 * * 0', async () => {
         try {
             winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
             await WeeklyReports.generateAllWeeklyReports();
@@ -472,7 +466,7 @@ WeeklyReports.generateAllWeeklyReports = async function (options = {}) {
             duration
         };
     } catch (error) {
-        winston.error('[reports:weekly] 💥 Criticawl error:', error.stack);
+        winston.error('[reports:weekly] 💥 Critical error:', error.stack);
         throw error;
     }
 };
