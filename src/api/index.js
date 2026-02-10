@@ -25,4 +25,5 @@ module.exports = {
 	supervisor: require('./supervisor'),
 	notifications: require('./notifications'),
 	hvt: require('./hvt'),
+	sd: require('./sd'),
 };

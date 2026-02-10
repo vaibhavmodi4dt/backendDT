@@ -10,7 +10,8 @@ const collections = {
     RECOGNITION_ANSWERS: 'recognition_answers',
     RECOGNITION_ASSIGNMENTS: 'recognition_assignments',
     SUPERVISOR: "supervisor",
-    HVT: "hvt"
+    HVT: "hvt",
+    SD_PITCHES: "sd_pitches"
 };
 
 module.exports = { collections };

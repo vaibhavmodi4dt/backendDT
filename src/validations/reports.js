@@ -192,3 +192,62 @@ DailyReport.updateWeeklyPlan = z.object({
 DailyReport.getWeeklyReport = z.object({
     date: dateSchema.optional(), // Any date in the week, defaults to today
 });
+
+
+DailyReport.generateWeeklyReportEvaluation = z.object({
+    date: dateSchema.optional(), // Any date in the week, defaults to today
+});
+
+// GET WEEKLY REPORT EVALUATION
+DailyReport.getWeeklyReportEvaluation = z.object({
+    weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
+});
+
+// UPDATE WEEKLY REPORT EVALUATION
+DailyReport.updateWeeklyReportEvaluation = z.object({
+    weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
+    editedReport: z.object({
+        planVsActual: z.object({
+            planned: z.array(z.string()).optional(),
+            actual: z.object({
+                completed: z.array(z.string()).optional(),
+                inProgress: z.array(z.string()).optional(),
+            }).optional(),
+            deviations: z.object({
+                notStarted: z.array(z.string()).optional(),
+                blocked: z.array(z.string()).optional(),
+            }).optional(),
+            progressionTracking: z.array(z.object({
+                task: z.string(),
+                progression: z.string(),
+            })).optional(),
+            takeaways: z.string().optional(),
+        }).optional(),
+        bottlenecksAndInsights: z.object({
+            blockers: z.object({
+                executional: z.array(z.string()).optional(),
+                emotional: z.array(z.string()).optional(),
+            }).optional(),
+            responseAndResolution: z.array(z.string()).optional(),
+            selfLearning: z.array(z.string()).optional(),
+            takeaways: z.string().optional(),
+        }).optional(),
+        ipToolsTemplates: z.array(z.object({
+            name: z.string(),
+            description: z.string(),
+            reusability: z.string(),
+            source: z.string().optional(),
+        })).optional(),
+        externalExploration: z.array(z.string()).optional(),
+    }).refine((obj) => Object.keys(obj).length > 0, 'At least one field must be provided in editedReport'),
+});
+
+// SUBMIT WEEKLY REPORT EVALUATION
+DailyReport.submitWeeklyReportEvaluation = z.object({
+    weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
+}).passthrough(); // Allow extra fields like insights from frontend
+
+// GET WEEKLY INSIGHTS
+DailyReport.getWeeklyInsights = z.object({
+    weekStart: dateSchema.optional(), // Monday of the week, defaults to current week
+});

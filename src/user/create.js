@@ -128,10 +128,10 @@ module.exports = function (User) {
 		if (!password) {
 			return;
 		}
-		const hash = await User.hashPassword(password);
+		const hashedPassword = await User.hashPassword(password);
 		await Promise.all([
 			User.setUserFields(uid, {
-				password: hash,
+				password: hashedPassword,
 				'password:shaWrapped': 1,
 			}),
 			User.reset.updateExpiry(uid),

@@ -157,6 +157,19 @@ helpers.getCurrentWeekStart = function () {
     const mondayTs = utils.date.startOfWeek(nowTs);
     return utils.date.format(mondayTs, utils.date.formats.DATE);
 };
+
+helpers.getDateRange = function (startDate, endDate) {
+    const dates = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        dates.push(utils.date.format(date.getTime(), utils.date.formats.DATE));
+    }
+
+    return dates;
+};
+
 /**
  * Generate weekly report key
  */
@@ -185,7 +198,7 @@ helpers.getWeekDates = function (weekStart) {
     const dates = [];
     const start = new Date(weekStart);
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 7; i++) { // 7 days: Monday to Sunday
         const date = new Date(start);
         date.setDate(start.getDate() + i);
 
@@ -200,6 +213,17 @@ helpers.getWeekDates = function (weekStart) {
 };
 
 /**
+ * Get week number from date (YYYY-Www format)
+ */
+helpers.getWeekNumber = function (date) {
+    const d = new Date(date);
+    const oneJan = new Date(d.getFullYear(), 0, 1);
+    const numberOfDays = Math.floor((d - oneJan) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil((numberOfDays + oneJan.getDay() + 1) / 7);
+    return `${d.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+};
+
+/**
  * Sanitize weekly report for output
  */
 helpers.sanitizeWeeklyReport = function (report) {
@@ -208,10 +232,30 @@ helpers.sanitizeWeeklyReport = function (report) {
     return {
         uid: report.uid,
         weekStart: report.weekStart,
+        week: report.week || null,
         transcript: report.transcript || null,
         weeklyGoals: report.weeklyGoals || null,
         evaluation: report.evaluation || null,
         submissionStatus: report.submissionStatus || null,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+    };
+};
+
+/**
+ * Sanitize weekly report evaluation for output
+ */
+helpers.sanitizeWeeklyReportEvaluation = function (report) {
+    if (!report) return null;
+
+    return {
+        uid: report.uid,
+        weekStart: report.weekStart,
+        week: report.week || null,
+        generatedReport: report.generatedReport || null,
+        editedReport: report.editedReport || null,
+        status: report.status || 'draft',
+        submittedAt: report.submittedAt || null,
         createdAt: report.createdAt,
         updatedAt: report.updatedAt,
     };
