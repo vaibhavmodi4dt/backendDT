@@ -9,6 +9,7 @@ const reports = require('./reports');
 const recognition = require('./recognition');
 const pitch = require('./pitch');
 const supervisor = require('./supervisor');
+const hvt = require('./hvt');
 
 
 module.exports = {
@@ -21,4 +22,5 @@ module.exports = {
 	pitch,
 	reports,
 	supervisor,
+	hvt,
 };
