@@ -33,8 +33,10 @@ SupervisorScheduler.startJobs = function () {
 
 /**
  * Main function - calculates data for all departments in all organizations
+ * @param {Object} options - Optional parameters for testing
+ * @param {string} options.weekStart - Override week start date (YYYY-MM-DD)
  */
-SupervisorScheduler.calculateWeeklyData = async function () {
+SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
     winston.info('[supervisor] Starting weekly data calculation...');
 
     try {
@@ -47,11 +49,19 @@ SupervisorScheduler.calculateWeeklyData = async function () {
 
         winston.info(`[supervisor] Found ${orgIds.length} active organizations.`);
 
-        // Get current week's Monday (not previous week)
-        const today = new Date();
-        const currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
+        // Calculate the current week or use provided date for testing
+        let currentWeekStart;
 
-        winston.info(`[supervisor] Calculating for week: ${currentWeekStart}`);
+        if (options.weekStart) {
+            // Testing mode: use provided week start
+            currentWeekStart = options.weekStart;
+            winston.info(`[supervisor] 🧪 Testing mode: Using week ${currentWeekStart}`);
+        } else {
+            // Production mode: calculate current week's Monday
+            const today = new Date();
+            currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
+            winston.info(`[supervisor] 📅 Production mode: Calculating for week ${currentWeekStart}`);
+        }
 
         // Process each organization
         for (const orgId of orgIds) {
@@ -89,59 +99,59 @@ SupervisorScheduler.calculateWeeklyData = async function () {
     }
 };
 
-/**
- * Process single department
- */
-SupervisorScheduler.processDepartment = async function (deptId, weekStart) {
-    winston.info(`[supervisor] Processing ${deptId} for week ${weekStart}`);
+    /**
+     * Process single department
+     */
+    SupervisorScheduler.processDepartment = async function (deptId, weekStart) {
+        winston.info(`[supervisor] Processing ${deptId} for week ${weekStart}`);
 
-    // Check if already processed
-    const checkKey = `supervisor:weekly:${deptId}:${weekStart}`;
-    const exists = await db.exists(checkKey, { collection: collections.SUPERVISOR });
+        // Check if already processed
+        const checkKey = `supervisor:weekly:${deptId}:${weekStart}`;
+        const exists = await db.exists(checkKey, { collection: collections.SUPERVISOR });
 
-    if (exists) {
-        winston.info(`[supervisor] Already processed ${deptId} ${weekStart}. Skipping.`);
-        return;
-    }
-
-    try {
-        const membersResult = await Organizations.getDepartmentMembers(deptId, {
-            page: 1,
-            itemsPerPage: 1000,
-        });
-
-        if (!membersResult.members || membersResult.members.length === 0) {
-            winston.info(`[supervisor] No members in ${deptId}. Skipping.`);
+        if (exists) {
+            winston.info(`[supervisor] Already processed ${deptId} ${weekStart}. Skipping.`);
             return;
         }
 
-        winston.info(`[supervisor] Found ${membersResult.members.length} members in ${deptId}`);
+        try {
+            const membersResult = await Organizations.getDepartmentMembers(deptId, {
+                page: 1,
+                itemsPerPage: 1000,
+            });
 
-        // Calculate dashboard (scores + AI summary)
-        const dashboardData = await Supervisor.calculateDashboard(deptId, weekStart);
+            if (!membersResult.members || membersResult.members.length === 0) {
+                winston.info(`[supervisor] No members in ${deptId}. Skipping.`);
+                return;
+            }
 
-        // Save to database
-        await storage.saveDepartmentDashboard(deptId, weekStart, dashboardData);
+            winston.info(`[supervisor] Found ${membersResult.members.length} members in ${deptId}`);
 
-        // Save individual member scores
-        for (const member of dashboardData.members) {
-            await storage.saveMemberWeekScores(member.uid, weekStart, member);
+            // Calculate dashboard (scores + AI summary)
+            const dashboardData = await Supervisor.calculateDashboard(deptId, weekStart);
+
+            // Save to database
+            await storage.saveDepartmentDashboard(deptId, weekStart, dashboardData);
+
+            // Save individual member scores
+            for (const member of dashboardData.members) {
+                await storage.saveMemberWeekScores(member.uid, weekStart, member);
+            }
+
+            // Save team summary separately
+            await storage.saveTeamSummary(deptId, weekStart, dashboardData.teamSummary);
+
+            // Mark as processed
+            await db.setObject(checkKey, {
+                deptId,
+                weekStart,
+                processedAt: Date.now(),
+                memberCount: dashboardData.members.length,
+            }, { collection: collections.SUPERVISOR });
+
+            winston.info(`[supervisor] Successfully processed ${deptId}`);
+        } catch (err) {
+            winston.error(`[supervisor] Error processing ${deptId}:`, err);
+            throw err;
         }
-
-        // Save team summary separately
-        await storage.saveTeamSummary(deptId, weekStart, dashboardData.teamSummary);
-
-        // Mark as processed
-        await db.setObject(checkKey, {
-            deptId,
-            weekStart,
-            processedAt: Date.now(),
-            memberCount: dashboardData.members.length,
-        }, { collection: collections.SUPERVISOR });
-
-        winston.info(`[supervisor] Successfully processed ${deptId}`);
-    } catch (err) {
-        winston.error(`[supervisor] Error processing ${deptId}:`, err);
-        throw err;
-    }
-};
+    };
