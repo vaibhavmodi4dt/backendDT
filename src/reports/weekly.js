@@ -288,12 +288,13 @@ WeeklyReports.startScheduler = function () {
     winston.verbose('[reports:weekly] Starting scheduled jobs.');
 
     // Generate weekly reports every Sunday at 11:00 PM
-    new CronJob('0 11 * * 0', async () => {
+    new CronJob('31 21 * * *', async () => {
         try {
             winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
-            await WeeklyReports.generateAllWeeklyReports();
+            await WeeklyReports.generateAllWeeklyReports({ weekStart: "2026-02-16", weekEnd: "2026-02-21" }
+            );
         } catch (err) {
-            winston.error('[reports:weekly] ❌ Error in weekly generation:', err.stack);
+            winston.error(`[reports:weekly] ❌ Error in weekly generation: ${err.stack}`);
         }
     }, null, true);
 
@@ -400,8 +401,8 @@ WeeklyReports.generateForUser = async function (uid, options = {}) {
         weekStartStr = options.weekStart;
         if (options.weekEnd) {
             // Generate dates from weekStart to weekEnd
-            const startTimestamp = utils.date.parse(options.weekStart);
-            const endTimestamp = utils.date.parse(options.weekEnd);
+            const startTimestamp = utils.date.parseISO(options.weekStart);
+            const endTimestamp = utils.date.parseISO(options.weekEnd);
             weekDates = [];
 
             let currentTimestamp = startTimestamp;
@@ -487,8 +488,8 @@ WeeklyReports.getActiveUsers = async function (options = {}) {
     if (options.weekStart) {
         if (options.weekEnd) {
             // Generate dates from weekStart to weekEnd
-            const startTimestamp = utils.date.parse(options.weekStart);
-            const endTimestamp = utils.date.parse(options.weekEnd);
+            const startTimestamp = utils.date.parseISO(options.weekStart);
+            const endTimestamp = utils.date.parseISO(options.weekEnd);
             weekDates = [];
 
             let currentTimestamp = startTimestamp;
@@ -510,7 +511,7 @@ WeeklyReports.getActiveUsers = async function (options = {}) {
 
     for (const dateISO of weekDates) {
         const pattern = `reports:daily:user:*:${dateISO}`;
-        const allKeys = await db.getKeys(pattern, reportsCollection);
+        const allKeys = await db.scan({ match: pattern }, reportsCollection);
 
         allKeys.forEach((key) => {
             if (key.includes(dateISO)) {
