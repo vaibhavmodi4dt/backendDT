@@ -21,7 +21,7 @@ SupervisorScheduler.startJobs = function () {
     new CronJob('0 12 * * 0', async () => {
         try {
             winston.info('[supervisor] Running weekly calculation job...');
-            await SupervisorScheduler.calculateWeeklyData();
+            await SupervisorScheduler.calculateWeeklyData({ weekStart: "2026-02-16", weekEnd: "2026-02-21" });
             winston.info('[supervisor] Weekly calculation job completed.');
         } catch (err) {
             winston.error('[supervisor] Error in weekly calculation job:', err.stack);
@@ -99,59 +99,59 @@ SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
     }
 };
 
-    /**
-     * Process single department
-     */
-    SupervisorScheduler.processDepartment = async function (deptId, weekStart) {
-        winston.info(`[supervisor] Processing ${deptId} for week ${weekStart}`);
+/**
+ * Process single department
+ */
+SupervisorScheduler.processDepartment = async function (deptId, weekStart) {
+    winston.info(`[supervisor] Processing ${deptId} for week ${weekStart}`);
 
-        // Check if already processed
-        const checkKey = `supervisor:weekly:${deptId}:${weekStart}`;
-        const exists = await db.exists(checkKey, { collection: collections.SUPERVISOR });
+    // Check if already processed
+    const checkKey = `supervisor:weekly:${deptId}:${weekStart}`;
+    const exists = await db.exists(checkKey, { collection: collections.SUPERVISOR });
 
-        if (exists) {
-            winston.info(`[supervisor] Already processed ${deptId} ${weekStart}. Skipping.`);
+    if (exists) {
+        winston.info(`[supervisor] Already processed ${deptId} ${weekStart}. Skipping.`);
+        return;
+    }
+
+    try {
+        const membersResult = await Organizations.getDepartmentMembers(deptId, {
+            page: 1,
+            itemsPerPage: 1000,
+        });
+
+        if (!membersResult.members || membersResult.members.length === 0) {
+            winston.info(`[supervisor] No members in ${deptId}. Skipping.`);
             return;
         }
 
-        try {
-            const membersResult = await Organizations.getDepartmentMembers(deptId, {
-                page: 1,
-                itemsPerPage: 1000,
-            });
+        winston.info(`[supervisor] Found ${membersResult.members.length} members in ${deptId}`);
 
-            if (!membersResult.members || membersResult.members.length === 0) {
-                winston.info(`[supervisor] No members in ${deptId}. Skipping.`);
-                return;
-            }
+        // Calculate dashboard (scores + AI summary)
+        const dashboardData = await Supervisor.calculateDashboard(deptId, weekStart);
 
-            winston.info(`[supervisor] Found ${membersResult.members.length} members in ${deptId}`);
+        // Save to database
+        await storage.saveDepartmentDashboard(deptId, weekStart, dashboardData);
 
-            // Calculate dashboard (scores + AI summary)
-            const dashboardData = await Supervisor.calculateDashboard(deptId, weekStart);
-
-            // Save to database
-            await storage.saveDepartmentDashboard(deptId, weekStart, dashboardData);
-
-            // Save individual member scores
-            for (const member of dashboardData.members) {
-                await storage.saveMemberWeekScores(member.uid, weekStart, member);
-            }
-
-            // Save team summary separately
-            await storage.saveTeamSummary(deptId, weekStart, dashboardData.teamSummary);
-
-            // Mark as processed
-            await db.setObject(checkKey, {
-                deptId,
-                weekStart,
-                processedAt: Date.now(),
-                memberCount: dashboardData.members.length,
-            }, { collection: collections.SUPERVISOR });
-
-            winston.info(`[supervisor] Successfully processed ${deptId}`);
-        } catch (err) {
-            winston.error(`[supervisor] Error processing ${deptId}:`, err);
-            throw err;
+        // Save individual member scores
+        for (const member of dashboardData.members) {
+            await storage.saveMemberWeekScores(member.uid, weekStart, member);
         }
-    };
+
+        // Save team summary separately
+        await storage.saveTeamSummary(deptId, weekStart, dashboardData.teamSummary);
+
+        // Mark as processed
+        await db.setObject(checkKey, {
+            deptId,
+            weekStart,
+            processedAt: Date.now(),
+            memberCount: dashboardData.members.length,
+        }, { collection: collections.SUPERVISOR });
+
+        winston.info(`[supervisor] Successfully processed ${deptId}`);
+    } catch (err) {
+        winston.error(`[supervisor] Error processing ${deptId}:`, err);
+        throw err;
+    }
+};
