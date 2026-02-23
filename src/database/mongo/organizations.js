@@ -545,7 +545,7 @@ module.exports = function (module) {
 		}
 
 		// Step 2: Get all membership objects from 'organizations' collection
-		const memberships = await module.getMemberships(membershipIds);
+		const memberships = (await module.getMemberships(membershipIds)).filter(Boolean);
 
 		// Step 3: Extract unique IDs
 		const orgIds = [...new Set(memberships.map(m => m.organizationId))];
