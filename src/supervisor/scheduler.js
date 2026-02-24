@@ -21,7 +21,7 @@ SupervisorScheduler.startJobs = function () {
     new CronJob('0 12 * * 0', async () => {
         try {
             winston.info('[supervisor] Running weekly calculation job...');
-            await SupervisorScheduler.calculateWeeklyData({ weekStart: "2026-02-16", weekEnd: "2026-02-21" });
+            await SupervisorScheduler.calculateWeeklyData();
             winston.info('[supervisor] Weekly calculation job completed.');
         } catch (err) {
             winston.error('[supervisor] Error in weekly calculation job:', err.stack);
