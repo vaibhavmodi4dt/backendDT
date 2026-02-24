@@ -18,7 +18,7 @@ SupervisorScheduler.startJobs = function () {
     winston.verbose('[supervisor] Starting weekly calculation job.');
 
     // Every Sunday at 12:00 PM
-    new CronJob('0 12 * * 0', async () => {
+    new CronJob('0 11 * * 0', async () => {
         try {
             winston.info('[supervisor] Running weekly calculation job...');
             await SupervisorScheduler.calculateWeeklyData();
@@ -72,23 +72,37 @@ SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
                     itemsPerPage: 1000,
                 });
 
-                if (!departmentsResult.departments || departmentsResult.departments.length === 0) {
-                    winston.info(`[supervisor] No departments in organization ${orgId}. Skipping.`);
-                    continue;
-                }
+        // Process each week
+        for (const weekStart of weeksToProcess) {
+            winston.info(`[supervisor] Calculating for week: ${weekStart}`);
 
-                winston.info(`[supervisor] Found ${departmentsResult.departments.length} departments in org ${orgId}`);
+            // Process each organization
+            for (const orgId of orgIds) {
+                try {
+                    // Get all departments for this organization
+                    const departmentsResult = await Organizations.getDepartmentsByOrganization(orgId, {
+                        page: 1,
+                        itemsPerPage: 1000,
+                    });
 
-                // Process each department
-                for (const department of departmentsResult.departments) {
-                    try {
-                        await SupervisorScheduler.processDepartment(department.deptId, currentWeekStart);
-                    } catch (err) {
-                        winston.error(`[supervisor] Error processing ${department.deptId}:`, err);
+                    if (!departmentsResult.departments || departmentsResult.departments.length === 0) {
+                        winston.info(`[supervisor] No departments in organization ${orgId}. Skipping.`);
+                        continue;
                     }
+
+                    winston.info(`[supervisor] Found ${departmentsResult.departments.length} departments in org ${orgId}`);
+
+                    // Process each department
+                    for (const department of departmentsResult.departments) {
+                        try {
+                            await SupervisorScheduler.processDepartment(department.deptId, weekStart);
+                        } catch (err) {
+                            winston.error(`[supervisor] Error processing ${department.deptId}:`, err);
+                        }
+                    }
+                } catch (err) {
+                    winston.error(`[supervisor] Error processing organization ${orgId}:`, err);
                 }
-            } catch (err) {
-                winston.error(`[supervisor] Error processing organization ${orgId}:`, err);
             }
         }
 
