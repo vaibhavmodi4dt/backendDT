@@ -33,8 +33,10 @@ SupervisorScheduler.startJobs = function () {
 
 /**
  * Main function - calculates data for all departments in all organizations
+ * @param {Object} options - Optional parameters for testing
+ * @param {string} options.weekStart - Override week start date (YYYY-MM-DD)
  */
-SupervisorScheduler.calculateWeeklyData = async function () {
+SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
     winston.info('[supervisor] Starting weekly data calculation...');
 
     try {
@@ -47,11 +49,19 @@ SupervisorScheduler.calculateWeeklyData = async function () {
 
         winston.info(`[supervisor] Found ${orgIds.length} active organizations.`);
 
-        // Get current week's Monday (not previous week)
-        const today = new Date();
-        const currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
+        // Calculate the current week or use provided date for testing
+        let currentWeekStart;
 
-        winston.info(`[supervisor] Calculating for week: ${currentWeekStart}`);
+        if (options.weekStart) {
+            // Testing mode: use provided week start
+            currentWeekStart = options.weekStart;
+            winston.info(`[supervisor] 🧪 Testing mode: Using week ${currentWeekStart}`);
+        } else {
+            // Production mode: calculate current week's Monday
+            const today = new Date();
+            currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
+            winston.info(`[supervisor] 📅 Production mode: Calculating for week ${currentWeekStart}`);
+        }
 
         // Process each organization
         for (const orgId of orgIds) {

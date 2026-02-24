@@ -337,7 +337,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
     const weekDates = Reports.helpers.getWeekDates(weekStartStr);
 
     // Check for existing evaluation (for caching)
-    const existing = await Reports.getUserWeeklyReport(caller.uid, weekStartStr);
+    const existing = await Reports.getReportEvaluation(caller.uid, weekStartStr);
 
     // Fetch daily reports from database
     const dailyReports = await Reports.fetchDailyReports(caller.uid, weekDates);
@@ -361,7 +361,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
         // AI service error - check if we have cached evaluation
         console.error('AI service error:', error);
 
-        if (existing && existing.insights) {
+        if (existing && existing.generatedReport) {
             // Return cached evaluation
             return {
                 success: true,
@@ -370,7 +370,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
                 weekStart: weekStartStr,
                 week,
                 daysFound: dailyReports.length,
-                insights: existing.insights,
+                generatedReport: existing.generatedReport,
                 editedReport: existing.editedReport,
                 status: existing.status,
                 submittedAt: existing.submittedAt,
@@ -391,7 +391,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
     // Validate AI response
     if (!aiResponse || !aiResponse.success || !aiResponse.data) {
         // AI returned error but we have cache
-        if (existing && existing.insights) {
+        if (existing && existing.generatedReport) {
             return {
                 success: true,
                 cached: true,
@@ -399,7 +399,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
                 weekStart: weekStartStr,
                 week,
                 daysFound: dailyReports.length,
-                insights: existing.insights,
+                generatedReport: existing.generatedReport,
                 editedReport: existing.editedReport,
                 status: existing.status,
                 submittedAt: existing.submittedAt,
@@ -419,7 +419,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
 
     // AI success - save to database
     const generatedReport = aiResponse.data;
-    const saved = await Reports.saveUserWeeklyReport(
+    const saved = await Reports.saveReportEvaluation(
         caller.uid,
         weekStartStr,
         generatedReport,
@@ -432,7 +432,7 @@ reportsApi.generateWeeklyReportEvaluation = async function (caller, data) {
         weekStart: weekStartStr,
         week,
         daysFound: dailyReports.length,
-        insights: saved.insights,
+        generatedReport: saved.generatedReport,
         editedReport: saved.editedReport,
         status: saved.status,
         submittedAt: saved.submittedAt,
@@ -482,7 +482,7 @@ reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
     const weekStart = weekStartDate.toISOString().split('T')[0];
 
     // Check if user report exists
-    const existing = await Reports.getUserWeeklyReport(caller.uid, weekStart);
+    const existing = await Reports.getReportEvaluation(caller.uid, weekStart);
     if (!existing) {
         throw new Error('[[error:no-weekly-evaluation-found]]');
     }
@@ -493,7 +493,7 @@ reportsApi.updateWeeklyReportEvaluation = async function (caller, data) {
     }
 
     // Update in database
-    return await Reports.updateUserWeeklyReport(
+    return await Reports.updateReportEvaluation(
         caller.uid,
         weekStart,
         data.editedReport
@@ -515,7 +515,7 @@ reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
     const weekStart = weekStartDate.toISOString().split('T')[0];
 
     // Check if user report exists
-    let existing = await Reports.getUserWeeklyReport(caller.uid, weekStart);
+    let existing = await Reports.getReportEvaluation(caller.uid, weekStart);
 
     // If no user report found, try to auto-generate it or create empty one for future weeks
     if (!existing) {
@@ -527,7 +527,7 @@ reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
             if (dailyReports.length === 0) {
                 // No daily reports - create empty report for future week
                 console.log(`[submit] No daily reports found, creating empty report for future week`);
-                existing = await Reports.saveUserWeeklyReport(
+                existing = await Reports.saveReportEvaluation(
                     caller.uid,
                     weekStart,
                     {}, // Empty generated report
@@ -541,7 +541,7 @@ reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
                 }
 
                 // Re-fetch after generation
-                existing = await Reports.getUserWeeklyReport(caller.uid, weekStart);
+                existing = await Reports.getReportEvaluation(caller.uid, weekStart);
                 if (!existing) {
                     throw new Error('[[error:generation-failed-no-db-entry]]');
                 }
@@ -559,12 +559,12 @@ reportsApi.submitWeeklyReportEvaluation = async function (caller, data) {
     }
 
     // Submit in database (pass insights from request if available)
-    const result = await Reports.submitUserWeeklyReport(caller.uid, weekStart, data.insights);
+    const result = await Reports.submitReportEvaluation(caller.uid, weekStart);
 
     console.log(`[submit] Successfully submitted report for user ${caller.uid}, week ${weekStart}`, result);
 
     // Verify submission was saved
-    const verified = await Reports.getUserWeeklyReport(caller.uid, weekStart);
+    const verified = await Reports.getReportEvaluation(caller.uid, weekStart);
     console.log(`[submit] Verified submission - status: ${verified?.status}, submittedAt: ${verified?.submittedAt}`);
 
     // Transform to match frontend expectations
@@ -593,7 +593,7 @@ reportsApi.getWeeklyInsights = async function (caller, data) {
     const weekEndStr = weekEndDate.toISOString().split('T')[0];
 
     // Fetch from user weekly reports (new key pattern)
-    let entry = await Reports.getUserWeeklyReport(caller.uid, weekStartStr);
+    let entry = await Reports.getReportEvaluation(caller.uid, weekStartStr);
 
     // If no user report exists, try to generate it (lazy-load pattern)
     if (!entry) {
@@ -619,7 +619,7 @@ reportsApi.getWeeklyInsights = async function (caller, data) {
             }
 
             // Re-fetch after generation
-            entry = await Reports.getUserWeeklyReport(caller.uid, weekStartStr);
+            entry = await Reports.getReportEvaluation(caller.uid, weekStartStr);
 
             if (!entry) {
                 console.error(`[insights] Generation returned success but no entry in DB for user ${caller.uid}`);
@@ -634,7 +634,7 @@ reportsApi.getWeeklyInsights = async function (caller, data) {
     }
 
     // Extract insights from user report (new format)
-    const insights = entry.insights || entry.generatedReport || {
+    const insights = entry.generatedReport || {
         weekAtGlance: '',
         highlights: '',
         blockers: '',

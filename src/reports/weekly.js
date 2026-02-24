@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const winston = require('winston');
 const { CronJob } = require('cron');
 
@@ -103,7 +104,7 @@ WeeklyReports.updateWeekly = async function (uid, weekStart, updates) {
 };
 
 // ==========================================
-// GET WEEKLY REPORT (7-day aggregation)
+// GET WEEKLY REPORT (6-day aggregation)
 // ==========================================
 WeeklyReports.getReport = async function (uid, weekDates) {
     const days = [];
@@ -133,7 +134,7 @@ WeeklyReports.getReport = async function (uid, weekDates) {
 
     return {
         startDate: weekDates[0],
-        endDate: weekDates[6], // Sunday (7th day)
+        endDate: weekDates[5],
         days,
     };
 };
@@ -176,87 +177,16 @@ WeeklyReports.callAiEvaluation = async function (dailyReports) {
 // ==========================================
 // SAVE WEEKLY REPORT EVALUATION
 // ==========================================
-
-/**
- * Transform AI agent response to insights format
- * 
- * AI Agent Format (detailed):
- *   { planVsActual, bottlenecksAndInsights, ipToolsTemplates, externalExploration, summary, highlights, escalations, suggestions }
- * 
- * Insights Format (user-friendly):
- *   { weekAtGlance, highlights, blockers, carryForward, userFeedback }
- */
-WeeklyReports.transformAiResponseToInsights = function (aiResponse) {
-    if (!aiResponse || typeof aiResponse !== 'object') {
-        return {
-            weekAtGlance: '',
-            highlights: '',
-            blockers: '',
-            carryForward: '',
-            userFeedback: '',
-        };
-    }
-
-    // Extract from AI response - handle both formats
-    const summary = aiResponse.summary || '';
-    const highlights = aiResponse.highlights || aiResponse.suggestions || '';
-    const escalations = aiResponse.escalations || '';
-    
-    // Extract blockers from bottlenecksAndInsights
-    const bottlenecks = aiResponse.bottlenecksAndInsights || {};
-    
-    // Handle blockers - could be array, object with nested arrays, or string
-    let blockersList = '';
-    if (bottlenecks.blockers) {
-        if (Array.isArray(bottlenecks.blockers)) {
-            // Array of strings
-            blockersList = bottlenecks.blockers.map(b => typeof b === 'string' ? b : (b.text || b)).join('\n• ');
-        } else if (typeof bottlenecks.blockers === 'object') {
-            // Could be {executional: [], emotional: []}
-            const executional = Array.isArray(bottlenecks.blockers.executional) 
-                ? bottlenecks.blockers.executional.join('\n• ') 
-                : '';
-            const emotional = Array.isArray(bottlenecks.blockers.emotional) 
-                ? bottlenecks.blockers.emotional.join('\n• ') 
-                : '';
-            blockersList = [executional, emotional].filter(b => b).join('\n• ');
-        } else if (typeof bottlenecks.blockers === 'string') {
-            blockersList = bottlenecks.blockers;
-        }
-    }
-    
-    // Extract carry-forward from responseAndResolution
-    const responseAndResolution = bottlenecks.responseAndResolution || [];
-    const carryForward = Array.isArray(responseAndResolution) && responseAndResolution.length > 0
-        ? responseAndResolution.map(item => `• ${typeof item === 'string' ? item : (item.text || item)}`).join('\n')
-        : (escalations || '');
-
-    return {
-        weekAtGlance: summary,
-        highlights: (highlights || '').replace(/^[•\-\*\s]+/, ''), // Remove leading bullet if present
-        blockers: blockersList ? `• ${blockersList}` : '',
-        carryForward: carryForward,
-        userFeedback: '',
-    };
-};
-
 WeeklyReports.saveReportEvaluation = async function (uid, weekStart, generatedReport, existing) {
     const key = `reports:weekly-evaluation:user:${uid}:${weekStart}`;
     const currentTime = utils.toISOString(utils.date.now());
     const timestamp = utils.date.now();
 
-    // Transform AI response to insights format if possible
-    let insightsData = generatedReport;
-    if (generatedReport && generatedReport.planVsActual) {
-        // This is AI agent format, transform it
-        insightsData = WeeklyReports.transformAiResponseToInsights(generatedReport);
-    }
-
     await db.setObject(key, {
         uid,
         weekStart,
         week: helpers.getWeekNumber(weekStart),
-        generatedReport: insightsData,
+        generatedReport,
         editedReport: existing?.editedReport || null,
         status: existing?.status || 'draft',
         submittedAt: existing?.submittedAt || null,
@@ -274,7 +204,7 @@ WeeklyReports.saveReportEvaluation = async function (uid, weekStart, generatedRe
         uid,
         weekStart,
         week: helpers.getWeekNumber(weekStart),
-        generatedReport: insightsData,
+        generatedReport,
         editedReport: existing?.editedReport || null,
         status: existing?.status || 'draft',
         submittedAt: existing?.submittedAt || null,
@@ -357,16 +287,14 @@ WeeklyReports.submitReportEvaluation = async function (uid, weekStart) {
 WeeklyReports.startScheduler = function () {
     winston.verbose('[reports:weekly] Starting scheduled jobs.');
 
-    // Generate weekly reports every Sunday at 11:00 PM
-    new CronJob('0 23 * * 0', async () => {
+    // Generate weekly reports every Sunday at 11:00 AM
+    new CronJob('0 11 * * 0', async () => {
         try {
             winston.info('[reports:weekly] 🕐 Sunday 11 PM - Starting automated weekly report generation...');
-            await WeeklyReports.generateAllWeeklyReports();
+            await WeeklyReports.generateAllWeeklyReports({ weekStart: "2026-02-16", weekEnd: "2026-02-21" }
+            );
         } catch (err) {
-            winston.error('[reports:weekly] ❌ Failed', {
-                message: err?.message || err,
-                stack: err?.stack,
-            });
+            winston.error(`[reports:weekly] ❌ Error in weekly generation: ${err.stack}`);
         }
     }, null, true);
 
@@ -380,35 +308,17 @@ WeeklyReports.startScheduler = function () {
 /**
  * Generate weekly reports for all active users
  * Called by cron job every Sunday at 11 PM
- * @param {Object} options - Optional parameters for testing
- * @param {string} options.weekStartStr - Override week start date (YYYY-MM-DD)
- * @param {string} options.weekEndStr - Override week end date (YYYY-MM-DD)
+ * @param {Object} options - Optional configuration
+ * @param {string} options.weekStart - Week start date (YYYY-MM-DD format)
+ * @param {string} options.weekEnd - Week end date (YYYY-MM-DD format)
  */
 WeeklyReports.generateAllWeeklyReports = async function (options = {}) {
     const startTime = utils.date.now();
     winston.info('[reports:weekly] 📊 Starting automated weekly report generation...');
 
     try {
-        // Calculate the current week (or use provided dates for testing)
-        let weekStartStr, weekEndStr;
-
-        if (options.weekStartStr && options.weekEndStr) {
-            // Testing mode: use provided dates
-            weekStartStr = options.weekStartStr;
-            weekEndStr = options.weekEndStr;
-            winston.info(`[reports:weekly] 🧪 Testing mode: ${weekStartStr} to ${weekEndStr}`);
-        } else {
-            // Production mode: calculate current week
-            const nowTimestamp = utils.date.now();
-            const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
-            weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
-            const weekDates = helpers.getWeekDates(weekStartStr);
-            weekEndStr = weekDates[weekDates.length - 1];
-            winston.info(`[reports:weekly] 📅 Production mode: ${weekStartStr} to ${weekEndStr}`);
-        }
-
         // Get all active users who submitted at least 1 report this week
-        const activeUsers = await WeeklyReports.getActiveUsers(weekStartStr, weekEndStr);
+        const activeUsers = await WeeklyReports.getActiveUsers(options);
 
         if (activeUsers.length === 0) {
             winston.info('[reports:weekly] ℹ️  No active users found. Nothing to generate.');
@@ -432,7 +342,7 @@ WeeklyReports.generateAllWeeklyReports = async function (options = {}) {
 
             await Promise.all(batch.map(async (uid) => {
                 try {
-                    const result = await WeeklyReports.generateForUser(uid, weekStartStr);
+                    const result = await WeeklyReports.generateForUser(uid, options);
 
                     if (result.skipped) {
                         skipped++;
@@ -478,16 +388,39 @@ WeeklyReports.generateAllWeeklyReports = async function (options = {}) {
 /**
  * Generate weekly report for a single user
  * @param {number} uid - User ID
- * @param {string} weekStartStr - Optional week start date (YYYY-MM-DD). If not provided, uses current week.
+ * @param {Object} options - Optional configuration
+ * @param {string} options.weekStart - Week start date (YYYY-MM-DD format)
+ * @param {string} options.weekEnd - Week end date (YYYY-MM-DD format)
  */
-WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
-    // Use provided week start or calculate current week start (Monday)
-    if (!weekStartStr) {
+WeeklyReports.generateForUser = async function (uid, options = {}) {
+    // Use provided weekStart or get current week start (Monday)
+    let weekStartStr;
+    let weekDates;
+
+    if (options.weekStart) {
+        weekStartStr = options.weekStart;
+        if (options.weekEnd) {
+            // Generate dates from weekStart to weekEnd
+            const startTimestamp = utils.date.parseISO(options.weekStart);
+            const endTimestamp = utils.date.parseISO(options.weekEnd);
+            weekDates = [];
+
+            let currentTimestamp = startTimestamp;
+            while (currentTimestamp <= endTimestamp) {
+                weekDates.push(utils.date.format(currentTimestamp, utils.date.formats.DATE));
+                currentTimestamp = utils.date.addDays(currentTimestamp, 1);
+            }
+        } else {
+            // Use weekStart and generate 6 days
+            weekDates = helpers.getWeekDates(weekStartStr);
+        }
+    } else {
+        // Use current week
         const nowTimestamp = utils.date.now();
         const weekStartTimestamp = utils.date.startOfWeek(nowTimestamp);
         weekStartStr = utils.date.format(weekStartTimestamp, utils.date.formats.DATE);
+        weekDates = helpers.getWeekDates(weekStartStr);
     }
-    const weekDates = helpers.getWeekDates(weekStartStr);
 
     // Fetch daily reports
     const dailyReports = await WeeklyReports.fetchDailyReports(uid, weekDates);
@@ -497,8 +430,8 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
         return { skipped: true, reason: 'no_daily_reports' };
     }
 
-    // Check if already exists (use new user report key)
-    const existing = await WeeklyReports.getUserWeeklyReport(uid, weekStartStr);
+    // Check if already exists
+    const existing = await WeeklyReports.getReportEvaluation(uid, weekStartStr);
 
     // Skip if already submitted
     if (existing && existing.status === 'submitted') {
@@ -510,7 +443,7 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
     try {
         aiResponse = await WeeklyReports.callAiEvaluation(dailyReports);
     } catch (error) {
-        if (existing && existing.insights) {
+        if (existing && existing.generatedReport) {
             return { skipped: true, reason: 'cached', cached: true };
         }
         throw new Error(`AI service failed: ${error.message}`);
@@ -518,14 +451,14 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
 
     // Validate response
     if (!aiResponse || !aiResponse.success || !aiResponse.data) {
-        if (existing && existing.insights) {
+        if (existing && existing.generatedReport) {
             return { skipped: true, reason: 'cached', cached: true };
         }
         throw new Error('AI returned invalid response');
     }
 
-    // Save using new user weekly report function
-    await WeeklyReports.saveUserWeeklyReport(
+    // Save
+    await WeeklyReports.saveReportEvaluation(
         uid,
         weekStartStr,
         aiResponse.data,
@@ -545,28 +478,49 @@ WeeklyReports.generateForUser = async function (uid, weekStartStr = null) {
 
 /**
  * Get users who submitted at least 1 daily report this week
+ * @param {Object} options - Optional configuration
+ * @param {string} options.weekStart - Week start date (YYYY-MM-DD format)
+ * @param {string} options.weekEnd - Week end date (YYYY-MM-DD format)
  */
-WeeklyReports.getActiveUsers = async function (startDate, endDate) {
-    const weekDates = helpers.getDateRange(startDate, endDate);
+WeeklyReports.getActiveUsers = async function (options = {}) {
+    let weekDates;
+
+    if (options.weekStart) {
+        if (options.weekEnd) {
+            // Generate dates from weekStart to weekEnd
+            const startTimestamp = utils.date.parseISO(options.weekStart);
+            const endTimestamp = utils.date.parseISO(options.weekEnd);
+            weekDates = [];
+
+            let currentTimestamp = startTimestamp;
+            while (currentTimestamp <= endTimestamp) {
+                weekDates.push(utils.date.format(currentTimestamp, utils.date.formats.DATE));
+                currentTimestamp = utils.date.addDays(currentTimestamp, 1);
+            }
+        } else {
+            // Use weekStart and generate 6 days
+            weekDates = helpers.getWeekDates(options.weekStart);
+        }
+    } else {
+        // Use current week
+        const weekStart = helpers.getCurrentWeekStart();
+        weekDates = helpers.getWeekDates(weekStart);
+    }
+
     const activeUsers = new Set();
 
     for (const dateISO of weekDates) {
-        // Use * wildcard for the UID portion
         const pattern = `reports:daily:user:*:${dateISO}`;
-
-        // Pass collection as part of options object
-        const allKeys = await db.scan(
-            { match: pattern },
-            reportsCollection
-        );
+        const allKeys = await db.scan({ match: pattern }, reportsCollection);
 
         allKeys.forEach((key) => {
-            const parts = key.split(':');
-            // parts should be: ['reports', 'daily', 'user', '<uid>', '<date>']
-            if (parts.length === 5) {
-                const uid = parseInt(parts[3], 10);
-                if (!isNaN(uid) && uid > 0) {
-                    activeUsers.add(uid);
+            if (key.includes(dateISO)) {
+                const parts = key.split(':');
+                if (parts.length >= 5) {
+                    const uid = parseInt(parts[3], 10);
+                    if (!isNaN(uid) && uid > 0) {
+                        activeUsers.add(uid);
+                    }
                 }
             }
         });
@@ -581,25 +535,17 @@ WeeklyReports.getActiveUsers = async function (startDate, endDate) {
 
 /**
  * Manual trigger for testing
- *
- * Usage examples:
- * - Generate for current week: WeeklyReports.manualTrigger()
- * - Generate for specific week: WeeklyReports.manualTrigger({ weekStartStr: '2026-01-05', weekEndStr: '2026-01-11' })
- * - Generate for single user (current week): WeeklyReports.manualTrigger({ uid: 112 })
- * - Generate for single user (specific week): WeeklyReports.manualTrigger({ uid: 112, weekStartStr: '2026-01-05' })
+ * Usage: WeeklyReports.manualTrigger() or WeeklyReports.manualTrigger({ uid: 6339 })
  */
 WeeklyReports.manualTrigger = async function (options = {}) {
     winston.info('[reports:weekly] 🔧 Manual trigger initiated', options);
 
     if (options.uid) {
         winston.info(`[reports:weekly] Generating for user ${options.uid}...`);
-        return await WeeklyReports.generateForUser(options.uid, options.weekStartStr);
+        return await WeeklyReports.generateForUser(options.uid);
     } else {
         winston.info('[reports:weekly] Generating for all users...');
-        return await WeeklyReports.generateAllWeeklyReports({
-            weekStartStr: options.weekStartStr,
-            weekEndStr: options.weekEndStr
-        });
+        return await WeeklyReports.generateAllWeeklyReports();
     }
 };
 
@@ -614,138 +560,5 @@ WeeklyReports.getSchedulerStatus = function () {
             schedule: '0 23 * * 0',
             description: 'Every Sunday at 11:00 PM',
         },
-    };
-};
-
-// ==========================================
-// USER WEEKLY REPORTS (SEPARATE FROM EVALUATION)
-// ==========================================
-
-/**
- * Save user-friendly weekly report with insights
- * Uses separate key pattern: reports:weekly:user:{uid}:{weekStart}
- * Does NOT interfere with supervisor dashboard data
- */
-WeeklyReports.saveUserWeeklyReport = async function (uid, weekStart, generatedReport, existing) {
-    const key = helpers.getWeeklyReportKey(uid, weekStart);  // Uses reports:weekly:user:{uid}:{weekStart}
-    const currentTime = utils.toISOString(utils.date.now());
-    const timestamp = utils.date.now();
-
-    // Transform AI response to user-friendly insights format
-    let insights = generatedReport;
-    if (generatedReport && generatedReport.planVsActual) {
-        insights = WeeklyReports.transformAiResponseToInsights(generatedReport);
-    }
-
-    await db.setObject(key, {
-        uid,
-        weekStart,
-        week: helpers.getWeekNumber(weekStart),
-        insights: insights,  // User-friendly format
-        editedReport: existing?.editedReport || null,
-        status: existing?.status || 'draft',
-        submittedAt: existing?.submittedAt || null,
-        createdAt: existing?.createdAt || currentTime,
-        updatedAt: currentTime,
-    }, reportsCollection);
-
-    // Update indexes
-    await Promise.all([
-        db.sortedSetAdd(`user:${uid}:reports:weekly`, timestamp, key),
-        db.sortedSetAdd(`reports:weekly:weekStart:${weekStart}`, timestamp, key),
-    ].filter(Boolean));
-
-    return {
-        uid,
-        weekStart,
-        week: helpers.getWeekNumber(weekStart),
-        insights: insights,
-        editedReport: existing?.editedReport || null,
-        status: existing?.status || 'draft',
-        submittedAt: existing?.submittedAt || null,
-        createdAt: existing?.createdAt || currentTime,
-        updatedAt: currentTime,
-    };
-};
-
-/**
- * Get user weekly report
- */
-WeeklyReports.getUserWeeklyReport = async function (uid, weekStart) {
-    const key = helpers.getWeeklyReportKey(uid, weekStart);
-    return await db.getObject(key, [], reportsCollection);
-};
-
-/**
- * Update user weekly report
- */
-WeeklyReports.updateUserWeeklyReport = async function (uid, weekStart, editedReport) {
-    const key = helpers.getWeeklyReportKey(uid, weekStart);
-    const currentTime = utils.toISOString(utils.date.now());
-
-    const existing = await db.getObject(key, [], reportsCollection);
-
-    await db.setObject(key, {
-        ...existing,
-        editedReport,
-        uid,
-        weekStart,
-        updatedAt: currentTime,
-    }, reportsCollection);
-
-    return {
-        ok: true,
-        weekStart,
-        week: helpers.getWeekNumber(weekStart),
-        updatedAt: currentTime,
-    };
-};
-
-/**
- * Submit user weekly report
- * Accepts optional submittedInsights to merge into insights during submission
- */
-WeeklyReports.submitUserWeeklyReport = async function (uid, weekStart, submittedInsights) {
-    const key = helpers.getWeeklyReportKey(uid, weekStart);
-    const currentTime = utils.toISOString(utils.date.now());
-    const timestamp = utils.date.now();
-
-    const existing = await db.getObject(key, [], reportsCollection);
-
-    // Merge insights: prioritize submitted insights, fallback to editedReport, then existing
-    let insights = existing.insights || {};
-
-    // First check if insights were provided in submission
-    if (submittedInsights && submittedInsights.userFeedback) {
-        insights = {
-            ...insights,
-            ...submittedInsights,  // Merge all submitted insights
-        };
-    } else if (existing.editedReport && existing.editedReport.userFeedback) {
-        // Fallback: merge from editedReport if no submitted insights
-        insights = {
-            ...insights,
-            userFeedback: existing.editedReport.userFeedback,
-        };
-    }
-
-    await db.setObject(key, {
-        ...existing,
-        insights,
-        editedReport: null, // Clear after submission
-        status: 'submitted',
-        submittedAt: currentTime,
-        updatedAt: currentTime,
-    }, reportsCollection);
-
-    // Update submitted index
-    await db.sortedSetAdd(`user:${uid}:reports:weekly:submitted`, timestamp, key);
-
-    return {
-        ok: true,
-        weekStart,
-        week: helpers.getWeekNumber(weekStart),
-        status: 'submitted',
-        submittedAt: currentTime,
     };
 };
