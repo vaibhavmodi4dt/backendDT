@@ -54,6 +54,8 @@ Write.reload = async (params) => {
 	router.use('/api/v3/pitch', require('./pitch')());
 	router.use('/api/v3/supervisor', require('./supervisor')());
 	router.use('/api/v3/notifications', require('./notifications')());
+	router.use('/api/v3/hvt', require('./hvt')());
+	router.use('/api/v3/sd', require('./sd')());
 
 
 

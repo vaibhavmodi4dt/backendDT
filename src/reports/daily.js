@@ -96,7 +96,7 @@ DailyReports.submitReport = async function (uid, data, existing) {
         report: data.report,
         evaluated,
         plan,
-        logoutAt: existing.logoutAt || utils.getCurrentISODateTime(),
+        logoutAt: existing.logoutAt || utils.date.toISO(utils.date.now()),
         updatedAt: utils.date.toISO(utils.date.now()),
         updatedCount: (existing.updatedCount || 0) + 1,
     }, reportsCollection);

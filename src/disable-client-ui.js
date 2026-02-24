@@ -28,6 +28,11 @@ DisableClientUI.middleware = function (req, res, next) {
 		return next();
 	}
 
+	// Allow /api/config (needed for CSRF token)
+	if (reqPath === `${relativePath}/api/config` || reqPath.startsWith(`${relativePath}/api/config?`)) {
+		return next();
+	}
+
 	// Allow ping endpoints
 	if (reqPath === `${relativePath}/ping` || reqPath === `${relativePath}/sping`) {
 		return next();

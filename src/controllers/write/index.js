@@ -23,4 +23,6 @@ Write.recognition = require("./recognition");
 Write.pitch = require("./pitch")
 Write.supervisor = require("./supervisor");
 Write.notifications = require('./notifications');
+Write.hvt = require('./hvt');
+Write.sd = require('./sd');
 

@@ -193,5 +193,6 @@ require('./mongo/sorted')(mongoModule);
 require('./mongo/list')(mongoModule);
 require('./mongo/transaction')(mongoModule);
 require("./mongo/organizations")(mongoModule);
+require('./mongo/hvt')(mongoModule);
 
 require('../promisify')(mongoModule, ['client', 'sessionStore']);

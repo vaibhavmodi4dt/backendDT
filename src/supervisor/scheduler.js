@@ -33,9 +33,8 @@ SupervisorScheduler.startJobs = function () {
 
 /**
  * Main function - calculates data for all departments in all organizations
- * @param {Object} options - Optional configuration
- * @param {string} options.weekStart - Week start date (YYYY-MM-DD format)
- * @param {string} options.weekEnd - Week end date (YYYY-MM-DD format) - optional, processes all weeks in range
+ * @param {Object} options - Optional parameters for testing
+ * @param {string} options.weekStart - Override week start date (YYYY-MM-DD)
  */
 SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
     winston.info('[supervisor] Starting weekly data calculation...');
@@ -50,23 +49,28 @@ SupervisorScheduler.calculateWeeklyData = async function (options = {}) {
 
         winston.info(`[supervisor] Found ${orgIds.length} active organizations.`);
 
-        // Determine which weeks to process
-        let weeksToProcess;
-        if (options.weekStart && options.weekEnd) {
-            // Process all weeks in the range
-            weeksToProcess = helpers.getWeeksBetween(options.weekStart, options.weekEnd);
-            winston.info(`[supervisor] Processing ${weeksToProcess.length} weeks from ${options.weekStart} to ${options.weekEnd}`);
-        } else if (options.weekStart) {
-            // Process single week
-            weeksToProcess = [options.weekStart];
-            winston.info(`[supervisor] Processing single week: ${options.weekStart}`);
+        // Calculate the current week or use provided date for testing
+        let currentWeekStart;
+
+        if (options.weekStart) {
+            // Testing mode: use provided week start
+            currentWeekStart = options.weekStart;
+            winston.info(`[supervisor] 🧪 Testing mode: Using week ${currentWeekStart}`);
         } else {
-            // Use current week
+            // Production mode: calculate current week's Monday
             const today = new Date();
-            const currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
-            weeksToProcess = [currentWeekStart];
-            winston.info(`[supervisor] Processing current week: ${currentWeekStart}`);
+            currentWeekStart = helpers.getWeekStart(today.toISOString().split('T')[0]);
+            winston.info(`[supervisor] 📅 Production mode: Calculating for week ${currentWeekStart}`);
         }
+
+        // Process each organization
+        for (const orgId of orgIds) {
+            try {
+                // Get all departments for this organization
+                const departmentsResult = await Organizations.getDepartmentsByOrganization(orgId, {
+                    page: 1,
+                    itemsPerPage: 1000,
+                });
 
         // Process each week
         for (const weekStart of weeksToProcess) {

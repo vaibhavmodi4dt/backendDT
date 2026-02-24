@@ -1,5 +1,6 @@
 'use strict';
 
+const winston = require('winston');
 const cacheCreate = require('../cache/lru');
 const Organizations = require('../organizations');
 const helpers = require('./helpers');

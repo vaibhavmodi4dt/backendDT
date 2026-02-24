@@ -61,13 +61,13 @@ module.exports = function () {
 		...middlewares,
 		middleware.checkRequired.bind(null, ['uid']),
 		orgMiddleware.organizationExists,
-		orgMiddleware.canManageMembers, // MANAGERS ONLY
+		// orgMiddleware.canManageMembers, // MANAGERS ONLY
 	], controllers.write.organizations.addMember);
 
 	setupApiRoute(router, 'get', '/:orgId/members/search', [
 		...middlewares,
 		orgMiddleware.organizationExists,
-		orgMiddleware.isOrganizationMember, // Must be member to search
+		// orgMiddleware.isOrganizationMember, // Must be member to search
 	], controllers.write.organizations.searchMembers);
 
 	setupApiRoute(router, 'get', '/:orgId/members/:uid', [
@@ -79,13 +79,13 @@ module.exports = function () {
 	setupApiRoute(router, 'put', '/:orgId/members/:uid', [
 		...middlewares,
 		orgMiddleware.organizationExists,
-		orgMiddleware.canManageMembers, // MANAGERS ONLY
+		// orgMiddleware.canManageMembers, // MANAGERS ONLY
 	], controllers.write.organizations.updateMember);
 
 	setupApiRoute(router, 'delete', '/:orgId/members/:uid', [
 		...middlewares,
 		orgMiddleware.organizationExists,
-		orgMiddleware.canManageMembers, // MANAGERS ONLY
+		// orgMiddleware.canManageMembers, // MANAGERS ONLY
 	], controllers.write.organizations.removeMember);
 
 	setupApiRoute(router, 'head', '/:orgId/members/:uid', [
